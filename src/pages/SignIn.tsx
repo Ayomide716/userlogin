@@ -37,16 +37,29 @@ export default function SignIn() {
     } catch (error: any) {
       console.error("Sign in error:", error);
       
-      // Handle specific Firebase auth errors
-      if (error.code === "auth/invalid-login-credentials") {
-        toast.error("Invalid email or password. Please try again.");
-        setErrors(prev => ({ ...prev, auth: "Invalid email or password" }));
-      } else if (error.code === "auth/network-request-failed") {
-        toast.error("Network error. Please check your connection.");
-        setErrors(prev => ({ ...prev, auth: "Network error. Please try again" }));
-      } else {
-        toast.error("An error occurred during sign in");
-        setErrors(prev => ({ ...prev, auth: error.message }));
+      // Handle Firebase auth errors
+      switch (error.code) {
+        case "auth/invalid-login-credentials":
+        case "auth/user-not-found":
+        case "auth/wrong-password":
+          toast.error("Invalid email or password");
+          setErrors(prev => ({ ...prev, auth: "Invalid email or password. Please check your credentials and try again." }));
+          break;
+        case "auth/invalid-email":
+          toast.error("Invalid email format");
+          setErrors(prev => ({ ...prev, email: "Please enter a valid email address" }));
+          break;
+        case "auth/network-request-failed":
+          toast.error("Network error. Please check your connection");
+          setErrors(prev => ({ ...prev, auth: "Network error. Please check your connection and try again" }));
+          break;
+        case "auth/too-many-requests":
+          toast.error("Too many failed attempts. Please try again later");
+          setErrors(prev => ({ ...prev, auth: "Access temporarily disabled due to many failed attempts. Please try again later" }));
+          break;
+        default:
+          toast.error("An error occurred during sign in");
+          setErrors(prev => ({ ...prev, auth: "An unexpected error occurred. Please try again" }));
       }
     } finally {
       setIsLoading(false);
