@@ -21,25 +21,22 @@ export default function SignUp() {
     setErrors({});
     setIsLoading(true);
 
-    // Basic validation
-    if (!formData.email) {
-      setErrors(prev => ({ ...prev, email: "Email is required" }));
-      setIsLoading(false);
-      return;
-    }
-    if (!formData.password) {
-      setErrors(prev => ({ ...prev, password: "Password is required" }));
-      setIsLoading(false);
-      return;
-    }
-    if (formData.password !== formData.confirmPassword) {
-      setErrors(prev => ({ ...prev, confirmPassword: "Passwords don't match" }));
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      // Check if email already exists
+      // Basic validation
+      if (!formData.email) {
+        setErrors(prev => ({ ...prev, email: "Email is required" }));
+        return;
+      }
+      if (!formData.password) {
+        setErrors(prev => ({ ...prev, password: "Password is required" }));
+        return;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setErrors(prev => ({ ...prev, confirmPassword: "Passwords don't match" }));
+        return;
+      }
+
+      // Check if email exists first
       const signInMethods = await fetchSignInMethodsForEmail(auth, formData.email);
       
       if (signInMethods.length > 0) {
@@ -49,7 +46,6 @@ export default function SignUp() {
           email: "An account with this email already exists",
           auth: "Please sign in instead or use a different email address"
         }));
-        setIsLoading(false);
         return;
       }
 
@@ -61,18 +57,30 @@ export default function SignUp() {
       console.error("Sign up error:", error);
       
       // Handle specific Firebase auth errors
-      if (error.code === "auth/weak-password") {
-        toast.error("Password should be at least 6 characters");
-        setErrors(prev => ({ ...prev, password: "Password too weak" }));
-      } else if (error.code === "auth/invalid-email") {
-        toast.error("Invalid email address");
-        setErrors(prev => ({ ...prev, email: "Invalid email format" }));
-      } else if (error.code === "auth/network-request-failed") {
-        toast.error("Network error. Please check your connection");
-        setErrors(prev => ({ ...prev, auth: "Network error. Please check your connection and try again" }));
-      } else {
-        toast.error("Failed to create account");
-        setErrors(prev => ({ ...prev, auth: error.message }));
+      switch (error.code) {
+        case "auth/email-already-in-use":
+          toast.error("Email already in use");
+          setErrors(prev => ({ 
+            ...prev, 
+            email: "This email is already registered",
+            auth: "Please sign in instead or use a different email address"
+          }));
+          break;
+        case "auth/weak-password":
+          toast.error("Password should be at least 6 characters");
+          setErrors(prev => ({ ...prev, password: "Password must be at least 6 characters" }));
+          break;
+        case "auth/invalid-email":
+          toast.error("Invalid email address");
+          setErrors(prev => ({ ...prev, email: "Please enter a valid email address" }));
+          break;
+        case "auth/network-request-failed":
+          toast.error("Network error. Please check your connection");
+          setErrors(prev => ({ ...prev, auth: "Network error. Please check your connection and try again" }));
+          break;
+        default:
+          toast.error("Failed to create account");
+          setErrors(prev => ({ ...prev, auth: "An unexpected error occurred. Please try again" }));
       }
     } finally {
       setIsLoading(false);
