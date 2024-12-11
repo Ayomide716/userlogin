@@ -1,30 +1,46 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthInput } from "@/components/auth/AuthInput";
-import { Button } from "@/components/ui/button";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { toast } from "sonner";
 
 export default function SignIn() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    setIsLoading(true);
 
     // Basic validation
     if (!email) {
       setErrors(prev => ({ ...prev, email: "Email is required" }));
+      setIsLoading(false);
       return;
     }
     if (!password) {
       setErrors(prev => ({ ...prev, password: "Password is required" }));
+      setIsLoading(false);
       return;
     }
 
-    // TODO: Implement Firebase authentication
-    console.log("Sign in with:", { email, password });
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      toast.success("Successfully signed in!");
+      navigate("/dashboard"); // You'll need to create this route
+    } catch (error: any) {
+      console.error("Sign in error:", error);
+      toast.error(error.message || "Failed to sign in");
+      setErrors(prev => ({ ...prev, auth: error.message }));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -46,6 +62,7 @@ export default function SignIn() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 error={errors.email}
+                disabled={isLoading}
               />
               <AuthInput
                 type="password"
@@ -53,6 +70,7 @@ export default function SignIn() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 error={errors.password}
+                disabled={isLoading}
               />
             </div>
 
@@ -62,6 +80,7 @@ export default function SignIn() {
                   type="checkbox"
                   id="remember"
                   className="rounded border-gray-300 text-primary focus:ring-primary"
+                  disabled={isLoading}
                 />
                 <label htmlFor="remember" className="text-sm text-muted-foreground">
                   Remember me
@@ -75,8 +94,16 @@ export default function SignIn() {
               </Link>
             </div>
 
-            <button type="submit" className="auth-button">
-              Sign in
+            {errors.auth && (
+              <p className="text-sm text-destructive">{errors.auth}</p>
+            )}
+
+            <button 
+              type="submit" 
+              className="auth-button disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading}
+            >
+              {isLoading ? "Signing in..." : "Sign in"}
             </button>
           </form>
         </AuthCard>
