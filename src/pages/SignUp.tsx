@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthInput } from "@/components/auth/AuthInput";
@@ -39,6 +39,21 @@ export default function SignUp() {
     }
 
     try {
+      // Check if email already exists
+      const signInMethods = await fetchSignInMethodsForEmail(auth, formData.email);
+      
+      if (signInMethods.length > 0) {
+        toast.error("This email is already registered");
+        setErrors(prev => ({ 
+          ...prev, 
+          email: "An account with this email already exists",
+          auth: "Please sign in instead or use a different email address"
+        }));
+        setIsLoading(false);
+        return;
+      }
+
+      // Proceed with account creation
       await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       toast.success("Account created successfully!");
       navigate("/dashboard");
@@ -46,15 +61,15 @@ export default function SignUp() {
       console.error("Sign up error:", error);
       
       // Handle specific Firebase auth errors
-      if (error.code === "auth/email-already-in-use") {
-        toast.error("This email is already registered");
-        setErrors(prev => ({ ...prev, email: "Email already in use" }));
-      } else if (error.code === "auth/weak-password") {
+      if (error.code === "auth/weak-password") {
         toast.error("Password should be at least 6 characters");
         setErrors(prev => ({ ...prev, password: "Password too weak" }));
       } else if (error.code === "auth/invalid-email") {
         toast.error("Invalid email address");
         setErrors(prev => ({ ...prev, email: "Invalid email format" }));
+      } else if (error.code === "auth/network-request-failed") {
+        toast.error("Network error. Please check your connection");
+        setErrors(prev => ({ ...prev, auth: "Network error. Please check your connection and try again" }));
       } else {
         toast.error("Failed to create account");
         setErrors(prev => ({ ...prev, auth: error.message }));
@@ -110,6 +125,20 @@ export default function SignUp() {
                 disabled={isLoading}
               />
             </div>
+
+            {errors.auth && (
+              <div className="text-sm text-destructive space-y-2">
+                <p>{errors.auth}</p>
+                {errors.auth.includes("sign in instead") && (
+                  <Link
+                    to="/signin"
+                    className="block text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Sign in instead
+                  </Link>
+                )}
+              </div>
+            )}
 
             <button 
               type="submit" 
