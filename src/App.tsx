@@ -9,6 +9,7 @@ import { auth } from "@/lib/firebase";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import ForgotPassword from "./pages/ForgotPassword";
+import Dashboard from "./pages/Dashboard";
 
 const queryClient = new QueryClient();
 
@@ -51,7 +52,7 @@ const App = () => (
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <div>Dashboard (Create this component next)</div>
+                <Dashboard />
               </ProtectedRoute>
             }
           />
