@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthInput } from "@/components/auth/AuthInput";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, fetchSignInMethodsForEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 
@@ -31,6 +31,20 @@ export default function SignIn() {
     }
 
     try {
+      // First check if the email exists
+      const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+      
+      if (signInMethods.length === 0) {
+        // Email doesn't exist
+        toast.error("No account found with this email");
+        setErrors(prev => ({ 
+          ...prev, 
+          auth: "No account exists with this email. Would you like to create one?" 
+        }));
+        return;
+      }
+
+      // Proceed with sign in
       await signInWithEmailAndPassword(auth, email, password);
       toast.success("Successfully signed in!");
       navigate("/dashboard");
@@ -118,7 +132,17 @@ export default function SignIn() {
             </div>
 
             {errors.auth && (
-              <p className="text-sm text-destructive">{errors.auth}</p>
+              <div className="text-sm text-destructive space-y-2">
+                <p>{errors.auth}</p>
+                {errors.auth.includes("No account exists") && (
+                  <Link
+                    to="/signup"
+                    className="block text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Sign up instead
+                  </Link>
+                )}
+              </div>
             )}
 
             <button 
