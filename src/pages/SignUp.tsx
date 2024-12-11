@@ -37,16 +37,23 @@ export default function SignUp() {
       }
 
       // Check if email exists first
-      const signInMethods = await fetchSignInMethodsForEmail(auth, formData.email);
-      
-      if (signInMethods.length > 0) {
-        toast.error("This email is already registered");
-        setErrors(prev => ({ 
-          ...prev, 
-          email: "An account with this email already exists",
-          auth: "Please sign in instead or use a different email address"
-        }));
-        return;
+      try {
+        const signInMethods = await fetchSignInMethodsForEmail(auth, formData.email);
+        if (signInMethods.length > 0) {
+          toast.error("This email is already registered");
+          setErrors(prev => ({ 
+            ...prev, 
+            email: "This email is already registered",
+            auth: "Please sign in instead or use a different email address"
+          }));
+          return;
+        }
+      } catch (emailCheckError: any) {
+        if (emailCheckError.code === "auth/invalid-email") {
+          toast.error("Invalid email address");
+          setErrors(prev => ({ ...prev, email: "Please enter a valid email address" }));
+          return;
+        }
       }
 
       // Proceed with account creation
