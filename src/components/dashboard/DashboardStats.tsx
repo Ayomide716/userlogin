@@ -2,6 +2,7 @@ import { DollarSign, Users, Activity, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
+import { toast } from "sonner";
 
 export function DashboardStats() {
   const [stats, setStats] = useState([
