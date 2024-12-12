@@ -1,9 +1,19 @@
-import { Bell, Search, Settings, User } from "lucide-react";
+import { Bell, Search, Settings, User, LogOut } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function DashboardHeader() {
+  const navigate = useNavigate();
   const [userName, setUserName] = useState("");
   const [notifications, setNotifications] = useState([
     {
@@ -39,6 +49,35 @@ export function DashboardHeader() {
     }
   }, []);
 
+  const handleSignOut = async () => {
+    try {
+      await auth.signOut();
+      toast.success("Signed out successfully");
+      navigate("/signin");
+    } catch (error) {
+      toast.error("Failed to sign out");
+    }
+  };
+
+  const handleNotificationClick = () => {
+    const notificationsList = notifications.map(n => `${n.title} - ${n.timestamp.toLocaleString()}`).join('\n');
+    toast.info(
+      <div className="space-y-2">
+        <h3 className="font-semibold">Notifications</h3>
+        {notifications.map(n => (
+          <div key={n.id} className="text-sm">
+            {n.title}
+            <div className="text-xs text-gray-500">
+              {n.timestamp.toLocaleString()}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+    // Mark all as read
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
   return (
     <header className="border-b bg-white shadow-sm">
       <div className="flex h-16 items-center px-4 md:px-6">
@@ -58,7 +97,7 @@ export function DashboardHeader() {
             <div className="relative">
               <button
                 className="relative rounded-full p-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
-                onClick={() => toast.info("Notifications panel coming soon!")}
+                onClick={handleNotificationClick}
               >
                 <Bell className="h-5 w-5" />
                 {notifications.some(n => !n.read) && (
@@ -72,12 +111,31 @@ export function DashboardHeader() {
             >
               <Settings className="h-5 w-5" />
             </button>
-            <button className="flex items-center space-x-2 rounded-full p-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary">
-              <User className="h-5 w-5" />
-              <span className="hidden md:inline-block text-sm font-medium">
-                {userName}
-              </span>
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center space-x-2 rounded-full p-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary">
+                <User className="h-5 w-5" />
+                <span className="hidden md:inline-block text-sm font-medium">
+                  {userName}
+                </span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => toast.info("Profile settings coming soon!")}>
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info("Settings panel coming soon!")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

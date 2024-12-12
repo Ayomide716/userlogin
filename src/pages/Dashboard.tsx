@@ -11,19 +11,21 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
+import { useEffect } from "react";
 
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  const handleSignOut = async () => {
-    try {
-      await auth.signOut();
-      toast.success("Signed out successfully");
-      navigate("/signin");
-    } catch (error) {
-      toast.error("Failed to sign out");
-    }
-  };
+  useEffect(() => {
+    // Check if user is authenticated
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        navigate("/signin");
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50/95">
