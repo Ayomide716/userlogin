@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthInput } from "@/components/auth/AuthInput";
-import { signInWithEmailAndPassword, fetchSignInMethodsForEmail } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 
@@ -18,46 +18,31 @@ export default function SignIn() {
     setErrors({});
     setIsLoading(true);
 
-    // Basic validation
-    if (!email) {
-      setErrors(prev => ({ ...prev, email: "Email is required" }));
-      setIsLoading(false);
-      return;
-    }
-    if (!password) {
-      setErrors(prev => ({ ...prev, password: "Password is required" }));
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      // First check if the email exists
-      const signInMethods = await fetchSignInMethodsForEmail(auth, email);
-      
-      if (signInMethods.length === 0) {
-        // Email doesn't exist
-        toast.error("No account found with this email");
-        setErrors(prev => ({ 
-          ...prev, 
-          auth: "No account exists with this email. Would you like to create one?" 
-        }));
+      if (!email) {
+        setErrors(prev => ({ ...prev, email: "Email is required" }));
+        return;
+      }
+      if (!password) {
+        setErrors(prev => ({ ...prev, password: "Password is required" }));
         return;
       }
 
-      // Proceed with sign in
       await signInWithEmailAndPassword(auth, email, password);
       toast.success("Successfully signed in!");
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Sign in error:", error);
       
-      // Handle Firebase auth errors
       switch (error.code) {
-        case "auth/invalid-login-credentials":
+        case "auth/invalid-credential":
         case "auth/user-not-found":
         case "auth/wrong-password":
           toast.error("Invalid email or password");
-          setErrors(prev => ({ ...prev, auth: "Invalid email or password. Please check your credentials and try again." }));
+          setErrors(prev => ({ 
+            ...prev, 
+            auth: "Invalid email or password. Please check your credentials and try again." 
+          }));
           break;
         case "auth/invalid-email":
           toast.error("Invalid email format");
@@ -65,15 +50,24 @@ export default function SignIn() {
           break;
         case "auth/network-request-failed":
           toast.error("Network error. Please check your connection");
-          setErrors(prev => ({ ...prev, auth: "Network error. Please check your connection and try again" }));
+          setErrors(prev => ({ 
+            ...prev, 
+            auth: "Network error. Please check your connection and try again" 
+          }));
           break;
         case "auth/too-many-requests":
           toast.error("Too many failed attempts. Please try again later");
-          setErrors(prev => ({ ...prev, auth: "Access temporarily disabled due to many failed attempts. Please try again later" }));
+          setErrors(prev => ({ 
+            ...prev, 
+            auth: "Access temporarily disabled due to many failed attempts. Please try again later" 
+          }));
           break;
         default:
           toast.error("An error occurred during sign in");
-          setErrors(prev => ({ ...prev, auth: "An unexpected error occurred. Please try again" }));
+          setErrors(prev => ({ 
+            ...prev, 
+            auth: "An unexpected error occurred. Please try again" 
+          }));
       }
     } finally {
       setIsLoading(false);
@@ -132,22 +126,12 @@ export default function SignIn() {
             </div>
 
             {errors.auth && (
-              <div className="text-sm text-destructive space-y-2">
-                <p>{errors.auth}</p>
-                {errors.auth.includes("No account exists") && (
-                  <Link
-                    to="/signup"
-                    className="block text-primary hover:text-primary/80 transition-colors"
-                  >
-                    Sign up instead
-                  </Link>
-                )}
-              </div>
+              <div className="text-sm text-destructive">{errors.auth}</div>
             )}
 
             <button 
               type="submit" 
-              className="auth-button disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-2 px-4 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading}
             >
               {isLoading ? "Signing in..." : "Sign in"}
