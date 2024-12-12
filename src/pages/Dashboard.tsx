@@ -1,4 +1,4 @@
-import { Layout, LayoutDashboard, Users, MessageSquare, Settings } from "lucide-react";
+import { Layout, LayoutDashboard, Users, MessageSquare, Settings, Activity, TrendingUp, DollarSign } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -14,6 +14,19 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -22,9 +35,7 @@ export default function Dashboard() {
   useEffect(() => {
     const user = auth.currentUser;
     if (user) {
-      // Get the user's email and extract the name part (before @)
       const emailName = user.email?.split('@')[0] || '';
-      // Capitalize the first letter
       const formattedName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
       setUserName(formattedName);
     }
@@ -40,9 +51,36 @@ export default function Dashboard() {
     }
   };
 
+  const stats = [
+    {
+      title: "Total Revenue",
+      value: "$45,231.89",
+      description: "+20.1% from last month",
+      icon: DollarSign,
+    },
+    {
+      title: "Active Users",
+      value: "2,350",
+      description: "+180.1% from last month",
+      icon: Users,
+    },
+    {
+      title: "Active Sessions",
+      value: "1,247",
+      description: "+19% from last month",
+      icon: Activity,
+    },
+    {
+      title: "Conversion Rate",
+      value: "15.3%",
+      description: "+201 since last hour",
+      icon: TrendingUp,
+    },
+  ];
+
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
+      <div className="min-h-screen flex w-full bg-gray-50/95">
         <Sidebar>
           <SidebarContent>
             <SidebarGroup>
@@ -79,40 +117,107 @@ export default function Dashboard() {
           </SidebarContent>
         </Sidebar>
 
-        <main className="flex-1 p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div className="space-y-1">
-              <h2 className="text-2xl font-bold tracking-tight">Welcome back, {userName}! 👋</h2>
-              <p className="text-muted-foreground">
-                Here's what's happening with your account today.
-              </p>
+        <main className="flex-1 p-6 lg:p-8">
+          <div className="flex flex-col gap-8 max-w-7xl mx-auto">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="space-y-1">
+                <h2 className="text-2xl font-bold tracking-tight">Welcome back, {userName}! 👋</h2>
+                <p className="text-muted-foreground">
+                  Here's what's happening with your projects today.
+                </p>
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="px-4 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+              >
+                Sign Out
+              </button>
             </div>
-            <button
-              onClick={handleSignOut}
-              className="px-4 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-            >
-              Sign Out
-            </button>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="p-6 bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-              <h3 className="font-medium mb-2 text-gray-600">Total Users</h3>
-              <p className="text-2xl font-bold">0</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {stats.map((stat) => (
+                <Card key={stat.title} className="hover:shadow-md transition-shadow">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      {stat.title}
+                    </CardTitle>
+                    <stat.icon className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stat.value}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {stat.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-            <div className="p-6 bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-              <h3 className="font-medium mb-2 text-gray-600">Active Sessions</h3>
-              <p className="text-2xl font-bold">1</p>
-            </div>
-            <div className="p-6 bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-              <h3 className="font-medium mb-2 text-gray-600">Messages</h3>
-              <p className="text-2xl font-bold">0</p>
-            </div>
-          </div>
 
-          <div className="mt-6 p-6 bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-            <h2 className="text-lg font-medium mb-4">Recent Activity</h2>
-            <p className="text-gray-500">No recent activity to display.</p>
+            <Tabs defaultValue="overview" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                <TabsTrigger value="reports">Reports</TabsTrigger>
+              </TabsList>
+              <TabsContent value="overview" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                    <CardDescription>
+                      Your project's activity over the last 24 hours.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50">
+                        <Activity className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">New user registration</p>
+                          <p className="text-sm text-muted-foreground">2 minutes ago</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50">
+                        <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">New message received</p>
+                          <p className="text-sm text-muted-foreground">15 minutes ago</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="analytics" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Analytics</CardTitle>
+                    <CardDescription>
+                      Your analytics data will appear here.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                      Analytics data coming soon
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="reports" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Reports</CardTitle>
+                    <CardDescription>
+                      Your reports will appear here.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                      Reports coming soon
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
       </div>
