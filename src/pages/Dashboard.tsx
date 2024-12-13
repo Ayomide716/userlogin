@@ -11,6 +11,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
+import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
+import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { useEffect } from "react";
 
 export default function Dashboard() {
@@ -39,55 +41,79 @@ export default function Dashboard() {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="reports">Reports</TabsTrigger>
+              <TabsTrigger value="activity">Activity</TabsTrigger>
             </TabsList>
+            
             <TabsContent value="overview" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
-                  <CardDescription>
-                    Your project's activity over the last 24 hours.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50">
-                      <Layout className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Dashboard updated</p>
-                        <p className="text-sm text-muted-foreground">Just now</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                <Card className="col-span-4">
+                  <CardHeader>
+                    <CardTitle>Overview</CardTitle>
+                    <CardDescription>
+                      Your project's performance over time
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pl-2">
+                    <DashboardCharts />
+                  </CardContent>
+                </Card>
+                
+                <Card className="col-span-3">
+                  <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                    <CardDescription>
+                      Latest updates and changes
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <RecentActivity />
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
+
             <TabsContent value="analytics" className="space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle>Analytics</CardTitle>
                   <CardDescription>
-                    Your analytics data will appear here.
+                    Detailed analysis of your project metrics
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                    Analytics data coming soon
+                  <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                    <DashboardCharts type="analytics" />
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
+
             <TabsContent value="reports" className="space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle>Reports</CardTitle>
                   <CardDescription>
-                    Your reports will appear here.
+                    Generated reports and insights
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                    Reports coming soon
+                  <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                    <DashboardCharts type="reports" />
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="activity" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Activity Log</CardTitle>
+                  <CardDescription>
+                    Detailed history of all activities
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <RecentActivity extended={true} />
                 </CardContent>
               </Card>
             </TabsContent>
