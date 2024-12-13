@@ -2,6 +2,7 @@ import { Activity, ArrowRight, Calendar, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
 import { ActivityLog, subscribeToActivityLogs } from "@/lib/analytics";
+import { Timestamp } from "firebase/firestore";
 
 const icons = {
   user: User,
@@ -34,6 +35,10 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
     <div className="space-y-8">
       {activities.map((activity) => {
         const Icon = icons[activity.type];
+        const timestamp = activity.timestamp instanceof Timestamp 
+          ? activity.timestamp.toDate().toLocaleString()
+          : 'Just now';
+
         return (
           <div key={activity.id} className="flex items-center">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/10 bg-primary/10">
@@ -45,7 +50,7 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
                 {activity.description}
               </p>
               <p className="text-xs text-muted-foreground">
-                {activity.timestamp.toDate().toLocaleString()}
+                {timestamp}
               </p>
             </div>
             <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground" />
