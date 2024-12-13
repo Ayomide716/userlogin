@@ -1,5 +1,15 @@
 import { auth, db } from "@/lib/firebase";
-import { collection, addDoc, query, orderBy, limit, onSnapshot, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { 
+  collection, 
+  addDoc, 
+  query, 
+  orderBy, 
+  limit, 
+  onSnapshot, 
+  Timestamp, 
+  serverTimestamp,
+  DocumentData
+} from 'firebase/firestore';
 
 export interface ActivityLog {
   id: string;
@@ -23,13 +33,16 @@ export const logActivity = async (title: string, description: string, type: Acti
   if (!user) return;
 
   try {
-    await addDoc(collection(db, 'activity_logs'), {
+    const activityData = {
       userId: user.uid,
       title,
       description,
       type,
       timestamp: serverTimestamp(),
-    });
+    };
+
+    await addDoc(collection(db, 'activity_logs'), activityData);
+    console.log('Activity logged successfully:', title);
   } catch (error) {
     console.error('Error logging activity:', error);
   }
@@ -40,36 +53,109 @@ export const subscribeToActivityLogs = (
   limit_: number = 5
 ) => {
   const user = auth.currentUser;
-  if (!user) return () => {};
+  if (!user) {
+    callback([]);
+    return () => {};
+  }
 
-  const q = query(
-    collection(db, 'activity_logs'),
-    orderBy('timestamp', 'desc'),
-    limit(limit_)
-  );
+  try {
+    const q = query(
+      collection(db, 'activity_logs'),
+      orderBy('timestamp', 'desc'),
+      limit(limit_)
+    );
 
-  return onSnapshot(q, (snapshot) => {
-    const activities = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    } as ActivityLog));
-    callback(activities);
-  });
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        const activities = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as ActivityLog));
+        callback(activities);
+      },
+      (error) => {
+        console.error('Error subscribing to activity logs:', error);
+        callback([]);
+      }
+    );
+
+    return () => {
+      try {
+        unsubscribe();
+      } catch (error) {
+        console.error('Error unsubscribing from activity logs:', error);
+      }
+    };
+  } catch (error) {
+    console.error('Error setting up activity logs subscription:', error);
+    callback([]);
+    return () => {};
+  }
 };
 
 export const subscribeToAnalytics = (callback: (stats: AnalyticsStat) => void) => {
   const user = auth.currentUser;
-  if (!user) return () => {};
+  if (!user) {
+    callback({
+      revenue: 0,
+      activeUsers: 0,
+      activeSessions: 0,
+      conversionRate: 0,
+      timestamp: Timestamp.now(),
+    });
+    return () => {};
+  }
 
-  const q = query(
-    collection(db, 'analytics'),
-    orderBy('timestamp', 'desc'),
-    limit(1)
-  );
+  try {
+    const q = query(
+      collection(db, 'analytics'),
+      orderBy('timestamp', 'desc'),
+      limit(1)
+    );
 
-  return onSnapshot(q, (snapshot) => {
-    if (!snapshot.empty) {
-      callback(snapshot.docs[0].data() as AnalyticsStat);
-    }
-  });
+    const unsubscribe = onSnapshot(q,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const data = snapshot.docs[0].data() as AnalyticsStat;
+          callback(data);
+        } else {
+          callback({
+            revenue: 0,
+            activeUsers: 0,
+            activeSessions: 0,
+            conversionRate: 0,
+            timestamp: Timestamp.now(),
+          });
+        }
+      },
+      (error) => {
+        console.error('Error subscribing to analytics:', error);
+        callback({
+          revenue: 0,
+          activeUsers: 0,
+          activeSessions: 0,
+          conversionRate: 0,
+          timestamp: Timestamp.now(),
+        });
+      }
+    );
+
+    return () => {
+      try {
+        unsubscribe();
+      } catch (error) {
+        console.error('Error unsubscribing from analytics:', error);
+      }
+    };
+  } catch (error) {
+    console.error('Error setting up analytics subscription:', error);
+    callback({
+      revenue: 0,
+      activeUsers: 0,
+      activeSessions: 0,
+      conversionRate: 0,
+      timestamp: Timestamp.now(),
+    });
+    return () => {};
+  }
 };

@@ -41,43 +41,53 @@ export function DashboardStats() {
     const user = auth.currentUser;
     if (!user) return;
 
+    console.log('Setting up analytics subscription');
     const unsubscribe = subscribeToAnalytics((analyticsData) => {
-      setStats([
-        {
-          title: "Total Revenue",
-          value: `$${analyticsData.revenue.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}`,
-          description: `+${((analyticsData.revenue / 1000) * 100).toFixed(1)}% from last month`,
-          icon: DollarSign,
-          trend: (analyticsData.revenue / 1000) * 100,
-        },
-        {
-          title: "Active Users",
-          value: analyticsData.activeUsers.toString(),
-          description: `+${((analyticsData.activeUsers / 100) * 100).toFixed(1)}% from last month`,
-          icon: Users,
-          trend: (analyticsData.activeUsers / 100) * 100,
-        },
-        {
-          title: "Active Sessions",
-          value: analyticsData.activeSessions.toString(),
-          description: `+${((analyticsData.activeSessions / 100) * 100).toFixed(1)}% from last month`,
-          icon: Activity,
-          trend: (analyticsData.activeSessions / 100) * 100,
-        },
-        {
-          title: "Conversion Rate",
-          value: `${analyticsData.conversionRate.toFixed(1)}%`,
-          description: `+${analyticsData.conversionRate.toFixed(1)}% since last hour`,
-          icon: TrendingUp,
-          trend: analyticsData.conversionRate,
-        },
-      ]);
+      console.log('Received analytics data:', analyticsData);
+      try {
+        setStats([
+          {
+            title: "Total Revenue",
+            value: `$${analyticsData.revenue.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}`,
+            description: `${((analyticsData.revenue / 1000) * 100).toFixed(1)}% from last month`,
+            icon: DollarSign,
+            trend: (analyticsData.revenue / 1000) * 100,
+          },
+          {
+            title: "Active Users",
+            value: analyticsData.activeUsers.toString(),
+            description: `${((analyticsData.activeUsers / 100) * 100).toFixed(1)}% from last month`,
+            icon: Users,
+            trend: (analyticsData.activeUsers / 100) * 100,
+          },
+          {
+            title: "Active Sessions",
+            value: analyticsData.activeSessions.toString(),
+            description: `${((analyticsData.activeSessions / 100) * 100).toFixed(1)}% from last month`,
+            icon: Activity,
+            trend: (analyticsData.activeSessions / 100) * 100,
+          },
+          {
+            title: "Conversion Rate",
+            value: `${analyticsData.conversionRate.toFixed(1)}%`,
+            description: `${analyticsData.conversionRate.toFixed(1)}% since last hour`,
+            icon: TrendingUp,
+            trend: analyticsData.conversionRate,
+          },
+        ]);
+      } catch (error) {
+        console.error('Error updating stats:', error);
+        toast.error('Error updating dashboard stats');
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      console.log('Cleaning up analytics subscription');
+      unsubscribe();
+    };
   }, []);
 
   return (
