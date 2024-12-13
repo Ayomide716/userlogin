@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
+import { AnalyticsStat, subscribeToAnalytics } from "@/lib/analytics";
 
 export function DashboardStats() {
   const [stats, setStats] = useState([
@@ -38,43 +39,45 @@ export function DashboardStats() {
 
   useEffect(() => {
     const user = auth.currentUser;
-    if (user) {
-      // Update stats based on user's creation time
-      const creationTime = new Date(user.metadata.creationTime || Date.now());
-      const now = new Date();
-      const hoursSinceCreation = Math.floor((now.getTime() - creationTime.getTime()) / (1000 * 60 * 60));
+    if (!user) return;
 
+    const unsubscribe = subscribeToAnalytics((analyticsData) => {
       setStats([
         {
           title: "Total Revenue",
-          value: "$45,231.89",
-          description: `+20.1% from last month`,
+          value: `$${analyticsData.revenue.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`,
+          description: `+${((analyticsData.revenue / 1000) * 100).toFixed(1)}% from last month`,
           icon: DollarSign,
-          trend: 20.1,
+          trend: (analyticsData.revenue / 1000) * 100,
         },
         {
           title: "Active Users",
-          value: "2,350",
-          description: `+180.1% from last month`,
+          value: analyticsData.activeUsers.toString(),
+          description: `+${((analyticsData.activeUsers / 100) * 100).toFixed(1)}% from last month`,
           icon: Users,
-          trend: 180.1,
+          trend: (analyticsData.activeUsers / 100) * 100,
         },
         {
           title: "Active Sessions",
-          value: "1,247",
-          description: `+19% from last month`,
+          value: analyticsData.activeSessions.toString(),
+          description: `+${((analyticsData.activeSessions / 100) * 100).toFixed(1)}% from last month`,
           icon: Activity,
-          trend: 19,
+          trend: (analyticsData.activeSessions / 100) * 100,
         },
         {
           title: "Conversion Rate",
-          value: "15.3%",
-          description: `+201 since last hour`,
+          value: `${analyticsData.conversionRate.toFixed(1)}%`,
+          description: `+${analyticsData.conversionRate.toFixed(1)}% since last hour`,
           icon: TrendingUp,
-          trend: 201,
+          trend: analyticsData.conversionRate,
         },
       ]);
-    }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   return (
