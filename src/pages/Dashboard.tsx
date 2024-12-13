@@ -17,7 +17,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is authenticated
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (!user) {
         navigate("/signin");
@@ -28,15 +27,15 @@ export default function Dashboard() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50/95">
+    <div className="min-h-screen flex flex-col bg-gray-50/95 dark:bg-gray-900">
       <DashboardHeader />
       
-      <main className="flex-1 p-6 lg:p-8">
-        <div className="flex flex-col gap-8 max-w-7xl mx-auto">
+      <main className="flex-1 container mx-auto p-4 lg:p-8 max-w-7xl">
+        <div className="flex flex-col gap-6">
           <DashboardStats />
 
           <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList>
+            <TabsList className="w-full justify-start overflow-x-auto">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="reports">Reports</TabsTrigger>

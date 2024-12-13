@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, ArrowLeft } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 export default function Settings() {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const navigate = useNavigate();
   
   useEffect(() => {
     // Check initial theme
@@ -30,16 +32,27 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-background dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8 dark:text-white">Settings</h1>
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            className="gap-2"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+        </div>
         
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h1 className="text-3xl font-bold mb-8">Settings</h1>
+        
+        <div className="bg-card rounded-lg shadow-sm p-6 max-w-2xl">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <h2 className="text-lg font-medium dark:text-white">Appearance</h2>
-                <p className="text-sm text-muted-foreground dark:text-gray-400">
+                <h2 className="text-lg font-medium">Appearance</h2>
+                <p className="text-sm text-muted-foreground">
                   Customize how the dashboard looks
                 </p>
               </div>
@@ -48,11 +61,11 @@ export default function Settings() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 {isDarkMode ? (
-                  <Moon className="h-5 w-5 dark:text-white" />
+                  <Moon className="h-5 w-5" />
                 ) : (
                   <Sun className="h-5 w-5" />
                 )}
-                <span className="dark:text-white">Dark Mode</span>
+                <span>Dark Mode</span>
               </div>
               <Switch
                 checked={isDarkMode}
