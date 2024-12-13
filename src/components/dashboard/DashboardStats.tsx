@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 import { AnalyticsStat, subscribeToAnalytics, logActivity } from "@/lib/analytics";
+import { AddStatsDialog } from "./AddStatsDialog";
 
 export function DashboardStats() {
   const [stats, setStats] = useState([
@@ -84,7 +85,6 @@ export function DashboardStats() {
       }
     });
 
-    // Log initial activity
     logActivity(
       "Dashboard Viewed",
       "User accessed the dashboard",
@@ -98,35 +98,40 @@ export function DashboardStats() {
   }, []);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {stats.map((stat) => (
-        <Card 
-          key={stat.title} 
-          className="hover:shadow-md transition-shadow cursor-pointer"
-          onClick={() => {
-            const trendText = stat.trend > 0 ? `Increased by ${stat.trend}%` : 'No change';
-            toast.info(`${stat.title}: ${stat.value} (${trendText})`);
-            logActivity(
-              `Viewed ${stat.title}`,
-              `User checked ${stat.title.toLowerCase()} statistics`,
-              "activity"
-            );
-          }}
-        >
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {stat.title}
-            </CardTitle>
-            <stat.icon className={`h-4 w-4 ${stat.trend > 0 ? 'text-green-500' : 'text-muted-foreground'}`} />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stat.value}</div>
-            <p className={`text-xs ${stat.trend > 0 ? 'text-green-500' : 'text-muted-foreground'} mt-1`}>
-              {stat.description}
-            </p>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <AddStatsDialog />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat) => (
+          <Card 
+            key={stat.title} 
+            className="hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => {
+              const trendText = stat.trend > 0 ? `Increased by ${stat.trend}%` : 'No change';
+              toast.info(`${stat.title}: ${stat.value} (${trendText})`);
+              logActivity(
+                `Viewed ${stat.title}`,
+                `User checked ${stat.title.toLowerCase()} statistics`,
+                "activity"
+              );
+            }}
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {stat.title}
+              </CardTitle>
+              <stat.icon className={`h-4 w-4 ${stat.trend > 0 ? 'text-green-500' : 'text-muted-foreground'}`} />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stat.value}</div>
+              <p className={`text-xs ${stat.trend > 0 ? 'text-green-500' : 'text-muted-foreground'} mt-1`}>
+                {stat.description}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
