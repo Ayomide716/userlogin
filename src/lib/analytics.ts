@@ -8,6 +8,11 @@ import {
   onSnapshot, 
   Timestamp, 
   serverTimestamp,
+  doc,
+  updateDoc,
+  increment,
+  getDoc,
+  setDoc,
   DocumentData
 } from 'firebase/firestore';
 
@@ -28,6 +33,39 @@ export interface AnalyticsStat {
   timestamp: Timestamp;
 }
 
+const updateActiveUsers = async () => {
+  const analyticsRef = doc(db, 'analytics', 'stats');
+  try {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const userRef = doc(db, 'users', user.uid);
+    await setDoc(userRef, {
+      lastActive: serverTimestamp(),
+      email: user.email,
+    }, { merge: true });
+
+    await updateDoc(analyticsRef, {
+      activeUsers: increment(1),
+      activeSessions: increment(1),
+    });
+
+    // Cleanup on window close
+    window.addEventListener('beforeunload', async () => {
+      try {
+        await updateDoc(analyticsRef, {
+          activeUsers: increment(-1),
+          activeSessions: increment(-1),
+        });
+      } catch (error) {
+        console.error('Error updating active users on cleanup:', error);
+      }
+    });
+  } catch (error) {
+    console.error('Error updating active users:', error);
+  }
+};
+
 export const logActivity = async (title: string, description: string, type: ActivityLog['type']) => {
   const user = auth.currentUser;
   if (!user) return;
@@ -43,6 +81,9 @@ export const logActivity = async (title: string, description: string, type: Acti
 
     await addDoc(collection(db, 'activity_logs'), activityData);
     console.log('Activity logged successfully:', title);
+    
+    // Update analytics
+    await updateActiveUsers();
   } catch (error) {
     console.error('Error logging activity:', error);
   }
@@ -107,25 +148,27 @@ export const subscribeToAnalytics = (callback: (stats: AnalyticsStat) => void) =
   }
 
   try {
-    const q = query(
-      collection(db, 'analytics'),
-      orderBy('timestamp', 'desc'),
-      limit(1)
-    );
+    // Update active users when subscribing
+    updateActiveUsers();
 
-    const unsubscribe = onSnapshot(q,
-      (snapshot) => {
-        if (!snapshot.empty) {
-          const data = snapshot.docs[0].data() as AnalyticsStat;
+    const analyticsRef = doc(db, 'analytics', 'stats');
+    
+    const unsubscribe = onSnapshot(analyticsRef,
+      async (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const data = docSnapshot.data() as AnalyticsStat;
           callback(data);
         } else {
-          callback({
+          // Initialize analytics document if it doesn't exist
+          const initialData = {
             revenue: 0,
-            activeUsers: 0,
-            activeSessions: 0,
+            activeUsers: 1,
+            activeSessions: 1,
             conversionRate: 0,
             timestamp: Timestamp.now(),
-          });
+          };
+          await setDoc(analyticsRef, initialData);
+          callback(initialData);
         }
       },
       (error) => {

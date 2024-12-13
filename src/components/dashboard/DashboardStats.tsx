@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
-import { AnalyticsStat, subscribeToAnalytics } from "@/lib/analytics";
+import { AnalyticsStat, subscribeToAnalytics, logActivity } from "@/lib/analytics";
 
 export function DashboardStats() {
   const [stats, setStats] = useState([
@@ -84,6 +84,13 @@ export function DashboardStats() {
       }
     });
 
+    // Log initial activity
+    logActivity(
+      "Dashboard Viewed",
+      "User accessed the dashboard",
+      "activity"
+    );
+
     return () => {
       console.log('Cleaning up analytics subscription');
       unsubscribe();
@@ -99,6 +106,11 @@ export function DashboardStats() {
           onClick={() => {
             const trendText = stat.trend > 0 ? `Increased by ${stat.trend}%` : 'No change';
             toast.info(`${stat.title}: ${stat.value} (${trendText})`);
+            logActivity(
+              `Viewed ${stat.title}`,
+              `User checked ${stat.title.toLowerCase()} statistics`,
+              "activity"
+            );
           }}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
