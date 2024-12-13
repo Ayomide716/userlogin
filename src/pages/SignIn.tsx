@@ -13,61 +13,65 @@ export default function SignIn() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
 
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+    
+    if (!email) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+    
+    if (!password) {
+      newErrors.password = "Password is required";
+    } else if (password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      if (!email) {
-        setErrors(prev => ({ ...prev, email: "Email is required" }));
-        return;
-      }
-      if (!password) {
-        setErrors(prev => ({ ...prev, password: "Password is required" }));
-        return;
-      }
-
       await signInWithEmailAndPassword(auth, email, password);
       toast.success("Successfully signed in!");
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Sign in error:", error);
       
-      switch (error.code) {
-        case "auth/invalid-credential":
-        case "auth/user-not-found":
-        case "auth/wrong-password":
-          toast.error("Invalid email or password");
-          setErrors(prev => ({ 
-            ...prev, 
-            auth: "Invalid email or password. Please check your credentials and try again." 
-          }));
-          break;
-        case "auth/invalid-email":
-          toast.error("Invalid email format");
-          setErrors(prev => ({ ...prev, email: "Please enter a valid email address" }));
-          break;
-        case "auth/network-request-failed":
-          toast.error("Network error. Please check your connection");
-          setErrors(prev => ({ 
-            ...prev, 
-            auth: "Network error. Please check your connection and try again" 
-          }));
-          break;
-        case "auth/too-many-requests":
-          toast.error("Too many failed attempts. Please try again later");
-          setErrors(prev => ({ 
-            ...prev, 
-            auth: "Access temporarily disabled due to many failed attempts. Please try again later" 
-          }));
-          break;
-        default:
-          toast.error("An error occurred during sign in");
-          setErrors(prev => ({ 
-            ...prev, 
-            auth: "An unexpected error occurred. Please try again" 
-          }));
+      if (error.code === "auth/invalid-login-credentials") {
+        toast.error("Invalid email or password");
+        setErrors({
+          auth: "The email or password you entered is incorrect. Please try again."
+        });
+      } else if (error.code === "auth/invalid-email") {
+        toast.error("Invalid email format");
+        setErrors({ email: "Please enter a valid email address" });
+      } else if (error.code === "auth/network-request-failed") {
+        toast.error("Network error. Please check your connection");
+        setErrors({
+          auth: "Unable to connect. Please check your internet connection and try again."
+        });
+      } else if (error.code === "auth/too-many-requests") {
+        toast.error("Too many failed attempts. Please try again later");
+        setErrors({
+          auth: "Access temporarily disabled due to many failed attempts. Please try again later."
+        });
+      } else {
+        toast.error("An error occurred during sign in");
+        setErrors({
+          auth: "An unexpected error occurred. Please try again."
+        });
       }
     } finally {
       setIsLoading(false);
@@ -126,7 +130,9 @@ export default function SignIn() {
             </div>
 
             {errors.auth && (
-              <div className="text-sm text-destructive">{errors.auth}</div>
+              <div className="text-sm text-destructive animate-fade-in">
+                {errors.auth}
+              </div>
             )}
 
             <button 
