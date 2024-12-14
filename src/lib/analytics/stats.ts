@@ -9,49 +9,6 @@ import {
 } from 'firebase/firestore';
 import { AnalyticsStat } from './types';
 
-let cleanupPromise: Promise<void> | null = null;
-
-const updateActiveUsers = async () => {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const analyticsRef = doc(db, 'analytics', 'stats');
-  const userRef = doc(db, 'users', user.uid);
-
-  try {
-    await setDoc(userRef, {
-      lastActive: Timestamp.now(),
-      email: user.email,
-    }, { merge: true });
-
-    await updateDoc(analyticsRef, {
-      activeUsers: increment(1),
-      activeSessions: increment(1),
-    });
-
-    // Setup cleanup
-    cleanupPromise = new Promise<void>((resolve) => {
-      const cleanup = async () => {
-        try {
-          await updateDoc(analyticsRef, {
-            activeUsers: increment(-1),
-            activeSessions: increment(-1),
-          });
-          resolve();
-        } catch (error) {
-          console.error('Error updating active users on cleanup:', error);
-          resolve();
-        }
-      };
-
-      window.addEventListener('beforeunload', cleanup);
-    });
-
-  } catch (error) {
-    console.error('Error updating active users:', error);
-  }
-};
-
 export const subscribeToAnalytics = (callback: (stats: AnalyticsStat) => void) => {
   const user = auth.currentUser;
   if (!user) {
@@ -66,8 +23,6 @@ export const subscribeToAnalytics = (callback: (stats: AnalyticsStat) => void) =
   }
 
   try {
-    updateActiveUsers();
-
     const analyticsRef = doc(db, 'analytics', 'stats');
     
     const unsubscribe = onSnapshot(analyticsRef,
@@ -99,14 +54,7 @@ export const subscribeToAnalytics = (callback: (stats: AnalyticsStat) => void) =
       }
     );
 
-    return () => {
-      unsubscribe();
-      if (cleanupPromise) {
-        cleanupPromise.then(() => {
-          console.log('Analytics cleanup completed');
-        });
-      }
-    };
+    return unsubscribe;
   } catch (error) {
     console.error('Error setting up analytics subscription:', error);
     callback({

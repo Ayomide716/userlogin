@@ -1,9 +1,10 @@
 import { Activity, ArrowRight, Calendar, User } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
 import { ActivityLog, subscribeToActivityLogs } from "@/lib/analytics";
 import { Timestamp } from "firebase/firestore";
 import { toast } from "sonner";
+import { subscriptionManager } from "@/lib/analytics/subscriptionManager";
 
 const icons = {
   user: User,
@@ -18,8 +19,6 @@ interface RecentActivityProps {
 export function RecentActivity({ extended = false }: RecentActivityProps) {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const mountedRef = useRef(true);
-  const subscriptionRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -29,49 +28,29 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
       return;
     }
 
-    const setupSubscription = async () => {
-      try {
-        // Clean up existing subscription if any
-        if (subscriptionRef.current) {
-          subscriptionRef.current();
-          subscriptionRef.current = null;
-        }
-
-        // Set up new subscription
-        const unsubscribe = subscribeToActivityLogs(
-          (newActivities) => {
-            if (!mountedRef.current) return;
-
-            const validActivities = newActivities.filter(activity => 
-              activity && activity.timestamp && 
-              typeof activity.timestamp.toDate === 'function'
-            );
-            
-            setActivities(validActivities);
-            setIsLoading(false);
-          },
-          extended ? 10 : 5
-        );
-
-        subscriptionRef.current = unsubscribe;
-      } catch (error) {
-        console.error('Error setting up activity logs subscription:', error);
-        if (mountedRef.current) {
-          toast.error('Error connecting to activity service');
+    try {
+      const unsubscribe = subscribeToActivityLogs(
+        (newActivities) => {
+          const validActivities = newActivities.filter(activity => 
+            activity && activity.timestamp && 
+            typeof activity.timestamp.toDate === 'function'
+          );
+          
+          setActivities(validActivities);
           setIsLoading(false);
-        }
-      }
-    };
+        },
+        extended ? 10 : 5
+      );
 
-    setupSubscription();
-
-    return () => {
-      mountedRef.current = false;
-      if (subscriptionRef.current) {
-        subscriptionRef.current();
-        subscriptionRef.current = null;
-      }
-    };
+      subscriptionManager.addSubscription('recentActivity', unsubscribe);
+      return () => {
+        subscriptionManager.cleanupSubscription('recentActivity');
+      };
+    } catch (error) {
+      console.error('Error setting up activity logs subscription:', error);
+      toast.error('Error connecting to activity service');
+      setIsLoading(false);
+    }
   }, [extended]);
 
   const formatTimestamp = (timestamp: Timestamp | null) => {
