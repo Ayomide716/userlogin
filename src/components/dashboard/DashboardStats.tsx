@@ -101,25 +101,6 @@ export function DashboardStats() {
     toast.info(`${stat.title}: ${stat.value} (${trendText})`);
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-end">
-          <AddStatsDialog />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((stat) => (
-            <StatCard
-              key={stat.title}
-              {...stat}
-              onClick={() => handleStatClick(stat)}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex justify-end">

@@ -4,6 +4,7 @@ class SubscriptionManager {
   private subscriptions: Map<string, Unsubscribe> = new Map();
 
   addSubscription(id: string, unsubscribe: Unsubscribe) {
+    // Clean up existing subscription before adding new one
     this.cleanupSubscription(id);
     this.subscriptions.set(id, unsubscribe);
   }
