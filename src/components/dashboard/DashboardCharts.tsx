@@ -7,7 +7,8 @@ const generateData = (type: string) => {
   const types = {
     overview: { max: 1000, step: 50 },
     analytics: { max: 2000, step: 100 },
-    reports: { max: 500, step: 25 }
+    reports: { max: 500, step: 25 },
+    revenue: { max: 3000, step: 150 }
   };
   const config = types[type as keyof typeof types] || types.overview;
   

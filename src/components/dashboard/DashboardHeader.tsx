@@ -1,10 +1,13 @@
-import { Settings } from "lucide-react";
+import { Settings, BarChart } from "lucide-react";
 import { toast } from "sonner";
 import { SearchBar } from "./header/SearchBar";
 import { NotificationsButton } from "./header/NotificationsButton";
 import { UserMenu } from "./header/UserMenu";
+import { useNavigate } from "react-router-dom";
 
 export function DashboardHeader() {
+  const navigate = useNavigate();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
       <div className="flex h-16 items-center px-4 md:px-6">
@@ -16,10 +19,16 @@ export function DashboardHeader() {
             <div className="hidden sm:block">
               <SearchBar />
             </div>
+            <button
+              className="rounded-full p-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary dark:hover:bg-gray-700"
+              onClick={() => navigate("/analytics")}
+            >
+              <BarChart className="h-5 w-5 dark:text-white" />
+            </button>
             <NotificationsButton />
             <button
               className="rounded-full p-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary dark:hover:bg-gray-700"
-              onClick={() => toast.info("Settings panel coming soon!")}
+              onClick={() => navigate("/settings")}
             >
               <Settings className="h-5 w-5 dark:text-white" />
             </button>
