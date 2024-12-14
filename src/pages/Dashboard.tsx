@@ -1,38 +1,27 @@
-import { Layout } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { auth } from "@/lib/firebase";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { DashboardStats } from "@/components/dashboard/DashboardStats";
+import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
+import { RecentActivity } from "@/components/dashboard/RecentActivity";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { DashboardStats } from "@/components/dashboard/DashboardStats";
-import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
-import { RecentActivity } from "@/components/dashboard/RecentActivity";
-import { useEffect } from "react";
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (!user) {
-        navigate("/signin");
-      }
-    });
-
-    return () => unsubscribe();
-  }, [navigate]);
-
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50/95 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50/95 dark:bg-gray-900">
       <DashboardHeader />
       
-      <main className="flex-1 container mx-auto p-4 lg:p-8 max-w-7xl">
+      <main className="container mx-auto p-4 lg:p-8 max-w-7xl">
         <div className="flex flex-col gap-6">
           <DashboardStats />
 
@@ -81,7 +70,7 @@ export default function Dashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                  <div className="h-[400px]">
                     <DashboardCharts type="analytics" />
                   </div>
                 </CardContent>
@@ -97,7 +86,7 @@ export default function Dashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                  <div className="h-[400px]">
                     <DashboardCharts type="reports" />
                   </div>
                 </CardContent>
