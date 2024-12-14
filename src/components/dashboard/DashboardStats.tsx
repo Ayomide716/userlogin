@@ -1,6 +1,6 @@
 import { DollarSign, Users, Activity, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 import { AnalyticsStat, subscribeToAnalytics, logActivity } from "@/lib/analytics";
@@ -38,64 +38,104 @@ export function DashboardStats() {
     },
   ]);
 
+  const subscriptionRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
 
-    console.log('Setting up analytics subscription');
-    const unsubscribe = subscribeToAnalytics((analyticsData) => {
-      console.log('Received analytics data:', analyticsData);
-      try {
-        setStats([
-          {
-            title: "Total Revenue",
-            value: `$${analyticsData.revenue.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}`,
-            description: `${((analyticsData.revenue / 1000) * 100).toFixed(1)}% from last month`,
-            icon: DollarSign,
-            trend: (analyticsData.revenue / 1000) * 100,
-          },
-          {
-            title: "Active Users",
-            value: analyticsData.activeUsers.toString(),
-            description: `${((analyticsData.activeUsers / 100) * 100).toFixed(1)}% from last month`,
-            icon: Users,
-            trend: (analyticsData.activeUsers / 100) * 100,
-          },
-          {
-            title: "Active Sessions",
-            value: analyticsData.activeSessions.toString(),
-            description: `${((analyticsData.activeSessions / 100) * 100).toFixed(1)}% from last month`,
-            icon: Activity,
-            trend: (analyticsData.activeSessions / 100) * 100,
-          },
-          {
-            title: "Conversion Rate",
-            value: `${analyticsData.conversionRate.toFixed(1)}%`,
-            description: `${analyticsData.conversionRate.toFixed(1)}% since last hour`,
-            icon: TrendingUp,
-            trend: analyticsData.conversionRate,
-          },
-        ]);
-      } catch (error) {
-        console.error('Error updating stats:', error);
-        toast.error('Error updating dashboard stats');
-      }
-    });
+    let isMounted = true;
 
+    const setupSubscription = async () => {
+      try {
+        // Clean up any existing subscription
+        if (subscriptionRef.current) {
+          subscriptionRef.current();
+          subscriptionRef.current = null;
+        }
+
+        // Set up new subscription
+        const unsubscribe = subscribeToAnalytics((analyticsData) => {
+          if (!isMounted) return;
+
+          try {
+            setStats([
+              {
+                title: "Total Revenue",
+                value: `$${analyticsData.revenue.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}`,
+                description: `${((analyticsData.revenue / 1000) * 100).toFixed(1)}% from last month`,
+                icon: DollarSign,
+                trend: (analyticsData.revenue / 1000) * 100,
+              },
+              {
+                title: "Active Users",
+                value: analyticsData.activeUsers.toString(),
+                description: `${((analyticsData.activeUsers / 100) * 100).toFixed(1)}% from last month`,
+                icon: Users,
+                trend: (analyticsData.activeUsers / 100) * 100,
+              },
+              {
+                title: "Active Sessions",
+                value: analyticsData.activeSessions.toString(),
+                description: `${((analyticsData.activeSessions / 100) * 100).toFixed(1)}% from last month`,
+                icon: Activity,
+                trend: (analyticsData.activeSessions / 100) * 100,
+              },
+              {
+                title: "Conversion Rate",
+                value: `${analyticsData.conversionRate.toFixed(1)}%`,
+                description: `${analyticsData.conversionRate.toFixed(1)}% since last hour`,
+                icon: TrendingUp,
+                trend: analyticsData.conversionRate,
+              },
+            ]);
+          } catch (error) {
+            console.error('Error updating stats:', error);
+            if (isMounted) {
+              toast.error('Error updating dashboard stats');
+            }
+          }
+        });
+
+        subscriptionRef.current = unsubscribe;
+      } catch (error) {
+        console.error('Error setting up analytics subscription:', error);
+        if (isMounted) {
+          toast.error('Error connecting to analytics service');
+        }
+      }
+    };
+
+    setupSubscription();
+
+    // Log activity only once when component mounts
     logActivity(
       "Dashboard Viewed",
       "User accessed the dashboard",
       "activity"
-    );
+    ).catch(console.error);
 
     return () => {
-      console.log('Cleaning up analytics subscription');
-      unsubscribe();
+      isMounted = false;
+      if (subscriptionRef.current) {
+        subscriptionRef.current();
+        subscriptionRef.current = null;
+      }
     };
   }, []);
+
+  const handleStatClick = (stat: typeof stats[0]) => {
+    const trendText = stat.trend > 0 ? `Increased by ${stat.trend}%` : 'No change';
+    toast.info(`${stat.title}: ${stat.value} (${trendText})`);
+    logActivity(
+      `Viewed ${stat.title}`,
+      `User checked ${stat.title.toLowerCase()} statistics`,
+      "activity"
+    ).catch(console.error);
+  };
 
   return (
     <div className="space-y-4">
@@ -107,15 +147,7 @@ export function DashboardStats() {
           <Card 
             key={stat.title} 
             className="hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => {
-              const trendText = stat.trend > 0 ? `Increased by ${stat.trend}%` : 'No change';
-              toast.info(`${stat.title}: ${stat.value} (${trendText})`);
-              logActivity(
-                `Viewed ${stat.title}`,
-                `User checked ${stat.title.toLowerCase()} statistics`,
-                "activity"
-              );
-            }}
+            onClick={() => handleStatClick(stat)}
           >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">

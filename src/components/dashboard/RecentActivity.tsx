@@ -1,5 +1,5 @@
 import { Activity, ArrowRight, Calendar, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { auth } from "@/lib/firebase";
 import { ActivityLog, subscribeToActivityLogs } from "@/lib/analytics";
 import { Timestamp } from "firebase/firestore";
@@ -17,6 +17,7 @@ interface RecentActivityProps {
 
 export function RecentActivity({ extended = false }: RecentActivityProps) {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
+  const subscriptionRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -25,27 +26,55 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
       return;
     }
 
-    console.log('Setting up activity logs subscription');
-    const unsubscribe = subscribeToActivityLogs(
-      (newActivities) => {
-        try {
-          const validActivities = newActivities.filter(activity => 
-            activity && activity.timestamp && 
-            typeof activity.timestamp.toDate === 'function'
-          );
-          
-          setActivities(validActivities);
-        } catch (error) {
-          console.error('Error processing activities:', error);
-          toast.error('Error loading recent activities');
+    let isMounted = true;
+
+    const setupSubscription = async () => {
+      try {
+        // Clean up any existing subscription
+        if (subscriptionRef.current) {
+          subscriptionRef.current();
+          subscriptionRef.current = null;
         }
-      },
-      extended ? 10 : 5
-    );
+
+        // Set up new subscription
+        const unsubscribe = subscribeToActivityLogs(
+          (newActivities) => {
+            if (!isMounted) return;
+
+            try {
+              const validActivities = newActivities.filter(activity => 
+                activity && activity.timestamp && 
+                typeof activity.timestamp.toDate === 'function'
+              );
+              
+              setActivities(validActivities);
+            } catch (error) {
+              console.error('Error processing activities:', error);
+              if (isMounted) {
+                toast.error('Error loading recent activities');
+              }
+            }
+          },
+          extended ? 10 : 5
+        );
+
+        subscriptionRef.current = unsubscribe;
+      } catch (error) {
+        console.error('Error setting up activity logs subscription:', error);
+        if (isMounted) {
+          toast.error('Error connecting to activity service');
+        }
+      }
+    };
+
+    setupSubscription();
 
     return () => {
-      console.log('Cleaning up activity logs subscription');
-      unsubscribe();
+      isMounted = false;
+      if (subscriptionRef.current) {
+        subscriptionRef.current();
+        subscriptionRef.current = null;
+      }
     };
   }, [extended]);
 
