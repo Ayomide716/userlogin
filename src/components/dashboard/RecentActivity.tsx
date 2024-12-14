@@ -1,5 +1,5 @@
 import { Activity, ArrowRight, Calendar, User } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
 import { ActivityLog, subscribeToActivityLogs } from "@/lib/analytics";
 import { Timestamp } from "firebase/firestore";
@@ -30,7 +30,6 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
       return;
     }
 
-    // Only set up subscription if it's not already active
     if (!subscriptionManager.isSubscriptionActive(subscriptionId)) {
       try {
         const unsubscribe = subscribeToActivityLogs(
