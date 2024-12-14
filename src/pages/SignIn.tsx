@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthCard } from "@/components/auth/AuthCard";
-import { AuthInput } from "@/components/auth/AuthInput";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, GithubAuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Github, Google, Loader2 } from "lucide-react";
+import { SignInForm } from "@/components/auth/SignInForm";
+import { SocialSignIn } from "@/components/auth/SocialSignIn";
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -120,102 +119,36 @@ export default function SignIn() {
         </div>
 
         <AuthCard>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-4">
-              <AuthInput
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                error={errors.email}
-                disabled={isLoading}
-                autoFocus
-              />
-              <AuthInput
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                error={errors.password}
-                disabled={isLoading}
-              />
+          <SignInForm
+            onSubmit={handleSubmit}
+            email={email}
+            setEmail={setEmail}
+            password={password}
+            setPassword={setPassword}
+            errors={errors}
+            isLoading={isLoading}
+            rememberMe={rememberMe}
+            setRememberMe={setRememberMe}
+          />
+
+          <div className="relative mt-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
             </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="remember"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded border-gray-300 text-primary focus:ring-primary"
-                  disabled={isLoading}
-                />
-                <label htmlFor="remember" className="text-sm text-muted-foreground">
-                  Remember me
-                </label>
-              </div>
-              <Link
-                to="/forgot-password"
-                className="text-sm text-primary hover:text-primary/80 transition-colors"
-              >
-                Forgot password?
-              </Link>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">
+                Or continue with
+              </span>
             </div>
+          </div>
 
-            {errors.auth && (
-              <div className="text-sm text-destructive animate-fade-in">
-                {errors.auth}
-              </div>
-            )}
-
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                "Sign in"
-              )}
-            </Button>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleSocialSignIn('google')}
-                disabled={isLoading}
-              >
-                <Google className="mr-2 h-4 w-4" />
-                Google
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleSocialSignIn('github')}
-                disabled={isLoading}
-              >
-                <Github className="mr-2 h-4 w-4" />
-                GitHub
-              </Button>
-            </div>
-          </form>
+          <div className="mt-6">
+            <SocialSignIn
+              onGoogleClick={() => handleSocialSignIn('google')}
+              onGithubClick={() => handleSocialSignIn('github')}
+              isLoading={isLoading}
+            />
+          </div>
         </AuthCard>
 
         <p className="text-center text-sm text-muted-foreground">
