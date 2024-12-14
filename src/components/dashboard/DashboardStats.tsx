@@ -37,14 +37,16 @@ export function DashboardStats() {
       trend: 0,
     },
   ]);
-
+  const [isLoading, setIsLoading] = useState(true);
+  const mountedRef = useRef(true);
   const subscriptionRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const user = auth.currentUser;
-    if (!user) return;
-
-    let isMounted = true;
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
 
     const setupSubscription = async () => {
       try {
@@ -56,7 +58,7 @@ export function DashboardStats() {
 
         // Set up new subscription
         const unsubscribe = subscribeToAnalytics((analyticsData) => {
-          if (!isMounted) return;
+          if (!mountedRef.current) return;
 
           try {
             setStats([
@@ -94,17 +96,20 @@ export function DashboardStats() {
             ]);
           } catch (error) {
             console.error('Error updating stats:', error);
-            if (isMounted) {
+            if (mountedRef.current) {
               toast.error('Error updating dashboard stats');
             }
+          } finally {
+            setIsLoading(false);
           }
         });
 
         subscriptionRef.current = unsubscribe;
       } catch (error) {
         console.error('Error setting up analytics subscription:', error);
-        if (isMounted) {
+        if (mountedRef.current) {
           toast.error('Error connecting to analytics service');
+          setIsLoading(false);
         }
       }
     };
@@ -119,7 +124,7 @@ export function DashboardStats() {
     ).catch(console.error);
 
     return () => {
-      isMounted = false;
+      mountedRef.current = false;
       if (subscriptionRef.current) {
         subscriptionRef.current();
         subscriptionRef.current = null;
@@ -136,6 +141,32 @@ export function DashboardStats() {
       "activity"
     ).catch(console.error);
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <AddStatsDialog />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat) => (
+            <Card key={stat.title} className="animate-pulse">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {stat.title}
+                </CardTitle>
+                <div className="h-4 w-4 bg-muted rounded" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-7 bg-muted rounded w-24" />
+                <div className="h-4 bg-muted rounded w-32 mt-1" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

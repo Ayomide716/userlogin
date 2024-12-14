@@ -44,9 +44,7 @@ const updateActiveUsers = async () => {
         }
       };
 
-      window.addEventListener('beforeunload', () => {
-        cleanup();
-      });
+      window.addEventListener('beforeunload', cleanup);
     });
 
   } catch (error) {
@@ -57,14 +55,13 @@ const updateActiveUsers = async () => {
 export const subscribeToAnalytics = (callback: (stats: AnalyticsStat) => void) => {
   const user = auth.currentUser;
   if (!user) {
-    const defaultStats: AnalyticsStat = {
+    callback({
       revenue: 0,
       activeUsers: 0,
       activeSessions: 0,
       conversionRate: 0,
       timestamp: Timestamp.now(),
-    };
-    callback(defaultStats);
+    });
     return () => {};
   }
 
@@ -103,15 +100,11 @@ export const subscribeToAnalytics = (callback: (stats: AnalyticsStat) => void) =
     );
 
     return () => {
-      try {
-        unsubscribe();
-        if (cleanupPromise) {
-          cleanupPromise.then(() => {
-            console.log('Analytics cleanup completed');
-          });
-        }
-      } catch (error) {
-        console.error('Error unsubscribing from analytics:', error);
+      unsubscribe();
+      if (cleanupPromise) {
+        cleanupPromise.then(() => {
+          console.log('Analytics cleanup completed');
+        });
       }
     };
   } catch (error) {

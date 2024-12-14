@@ -17,16 +17,17 @@ interface RecentActivityProps {
 
 export function RecentActivity({ extended = false }: RecentActivityProps) {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const mountedRef = useRef(true);
   const subscriptionRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) {
       console.log('No user found, skipping activity subscription');
+      setIsLoading(false);
       return;
     }
-
-    let isMounted = true;
 
     const setupSubscription = async () => {
       try {
@@ -39,7 +40,7 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
         // Set up new subscription
         const unsubscribe = subscribeToActivityLogs(
           (newActivities) => {
-            if (!isMounted) return;
+            if (!mountedRef.current) return;
 
             try {
               const validActivities = newActivities.filter(activity => 
@@ -50,9 +51,11 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
               setActivities(validActivities);
             } catch (error) {
               console.error('Error processing activities:', error);
-              if (isMounted) {
+              if (mountedRef.current) {
                 toast.error('Error loading recent activities');
               }
+            } finally {
+              setIsLoading(false);
             }
           },
           extended ? 10 : 5
@@ -61,8 +64,9 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
         subscriptionRef.current = unsubscribe;
       } catch (error) {
         console.error('Error setting up activity logs subscription:', error);
-        if (isMounted) {
+        if (mountedRef.current) {
           toast.error('Error connecting to activity service');
+          setIsLoading(false);
         }
       }
     };
@@ -70,7 +74,7 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
     setupSubscription();
 
     return () => {
-      isMounted = false;
+      mountedRef.current = false;
       if (subscriptionRef.current) {
         subscriptionRef.current();
         subscriptionRef.current = null;
@@ -89,6 +93,14 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
       return 'Recently';
     }
   };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center p-4">Loading activities...</div>;
+  }
+
+  if (!activities.length) {
+    return <div className="text-center text-muted-foreground p-4">No recent activities</div>;
+  }
 
   return (
     <div className="space-y-8">
