@@ -65,9 +65,12 @@ export const subscribeToActivityLogs = (
           activity.timestamp !== null
         );
       callback(activities);
+    }).catch((error) => {
+      console.error('Error fetching initial activities:', error);
+      callback([]);
     });
 
-    // Set up real-time updates
+    // Set up real-time updates with error handling
     return onSnapshot(
       q, 
       {

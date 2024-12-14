@@ -5,7 +5,8 @@ import {
   increment,
   setDoc,
   onSnapshot,
-  Timestamp 
+  Timestamp,
+  getDoc
 } from 'firebase/firestore';
 import { AnalyticsStat } from './types';
 
@@ -27,6 +28,25 @@ export const subscribeToAnalytics = (callback: (stats: AnalyticsStat) => void) =
   try {
     const analyticsRef = doc(db, 'analytics', 'stats');
     
+    // First, get the initial data
+    getDoc(analyticsRef).then((docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const data = docSnapshot.data() as AnalyticsStat;
+        callback({
+          revenue: data.revenue || 0,
+          activeUsers: data.activeUsers || 0,
+          activeSessions: data.activeSessions || 0,
+          conversionRate: data.conversionRate || 0,
+          timestamp: data.timestamp || Timestamp.now(),
+        });
+      } else {
+        setDoc(analyticsRef, initialData)
+          .then(() => callback(initialData))
+          .catch(console.error);
+      }
+    }).catch(console.error);
+
+    // Then set up the real-time listener
     return onSnapshot(
       analyticsRef,
       {
@@ -40,10 +60,6 @@ export const subscribeToAnalytics = (callback: (stats: AnalyticsStat) => void) =
               conversionRate: data.conversionRate || 0,
               timestamp: data.timestamp || Timestamp.now(),
             });
-          } else {
-            setDoc(analyticsRef, initialData)
-              .then(() => callback(initialData))
-              .catch(console.error);
           }
         },
         error: (error) => {
