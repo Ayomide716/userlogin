@@ -1,5 +1,5 @@
 import { DollarSign, Users, Activity, TrendingUp } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 import { AnalyticsStat, subscribeToAnalytics } from "@/lib/analytics";
@@ -39,9 +39,12 @@ export function DashboardStats() {
     },
   ]);
   const [isLoading, setIsLoading] = useState(true);
+  const mounted = useRef(true);
 
   useEffect(() => {
+    mounted.current = true;
     const user = auth.currentUser;
+    
     if (!user) {
       setIsLoading(false);
       return;
@@ -49,6 +52,8 @@ export function DashboardStats() {
 
     try {
       const unsubscribe = subscribeToAnalytics((analyticsData) => {
+        if (!mounted.current) return;
+        
         setStats([
           {
             title: "Total Revenue",
@@ -86,13 +91,17 @@ export function DashboardStats() {
       });
 
       subscriptionManager.addSubscription('dashboardStats', unsubscribe);
+      
       return () => {
+        mounted.current = false;
         subscriptionManager.cleanupSubscription('dashboardStats');
       };
     } catch (error) {
       console.error('Error setting up analytics subscription:', error);
-      toast.error('Error connecting to analytics service');
-      setIsLoading(false);
+      if (mounted.current) {
+        toast.error('Error connecting to analytics service');
+        setIsLoading(false);
+      }
     }
   }, []);
 

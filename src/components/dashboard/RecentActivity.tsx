@@ -1,5 +1,5 @@
 import { Activity, ArrowRight, Calendar, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { auth } from "@/lib/firebase";
 import { ActivityLog, subscribeToActivityLogs } from "@/lib/analytics";
 import { Timestamp } from "firebase/firestore";
@@ -19,9 +19,12 @@ interface RecentActivityProps {
 export function RecentActivity({ extended = false }: RecentActivityProps) {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const mounted = useRef(true);
 
   useEffect(() => {
+    mounted.current = true;
     const user = auth.currentUser;
+    
     if (!user) {
       console.log('No user found, skipping activity subscription');
       setIsLoading(false);
@@ -31,6 +34,8 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
     try {
       const unsubscribe = subscribeToActivityLogs(
         (newActivities) => {
+          if (!mounted.current) return;
+          
           const validActivities = newActivities.filter(activity => 
             activity && activity.timestamp && 
             typeof activity.timestamp.toDate === 'function'
@@ -43,13 +48,17 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
       );
 
       subscriptionManager.addSubscription('recentActivity', unsubscribe);
+      
       return () => {
+        mounted.current = false;
         subscriptionManager.cleanupSubscription('recentActivity');
       };
     } catch (error) {
       console.error('Error setting up activity logs subscription:', error);
-      toast.error('Error connecting to activity service');
-      setIsLoading(false);
+      if (mounted.current) {
+        toast.error('Error connecting to activity service');
+        setIsLoading(false);
+      }
     }
   }, [extended]);
 
