@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthInput } from "@/components/auth/AuthInput";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, GithubAuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Github, Google, Loader2 } from "lucide-react";
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -12,6 +14,7 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -24,8 +27,6 @@ export default function SignIn() {
     
     if (!password) {
       newErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
     }
 
     setErrors(newErrors);
@@ -43,38 +44,68 @@ export default function SignIn() {
     setIsLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      if (rememberMe) {
+        localStorage.setItem("rememberedEmail", email);
+      } else {
+        localStorage.removeItem("rememberedEmail");
+      }
+      console.log("Sign in successful:", result.user);
       toast.success("Successfully signed in!");
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Sign in error:", error);
-      
-      if (error.code === "auth/invalid-login-credentials") {
+      handleAuthError(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSocialSignIn = async (provider: 'google' | 'github') => {
+    setIsLoading(true);
+    try {
+      const authProvider = provider === 'google' ? new GoogleAuthProvider() : new GithubAuthProvider();
+      const result = await signInWithPopup(auth, authProvider);
+      console.log(`${provider} sign in successful:`, result.user);
+      toast.success("Successfully signed in!");
+      navigate("/dashboard");
+    } catch (error: any) {
+      console.error(`${provider} sign in error:`, error);
+      handleAuthError(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAuthError = (error: any) => {
+    switch (error.code) {
+      case "auth/invalid-login-credentials":
         toast.error("Invalid email or password");
         setErrors({
           auth: "The email or password you entered is incorrect. Please try again."
         });
-      } else if (error.code === "auth/invalid-email") {
+        break;
+      case "auth/invalid-email":
         toast.error("Invalid email format");
         setErrors({ email: "Please enter a valid email address" });
-      } else if (error.code === "auth/network-request-failed") {
+        break;
+      case "auth/network-request-failed":
         toast.error("Network error. Please check your connection");
         setErrors({
           auth: "Unable to connect. Please check your internet connection and try again."
         });
-      } else if (error.code === "auth/too-many-requests") {
+        break;
+      case "auth/too-many-requests":
         toast.error("Too many failed attempts. Please try again later");
         setErrors({
           auth: "Access temporarily disabled due to many failed attempts. Please try again later."
         });
-      } else {
+        break;
+      default:
         toast.error("An error occurred during sign in");
         setErrors({
           auth: "An unexpected error occurred. Please try again."
         });
-      }
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -84,7 +115,7 @@ export default function SignIn() {
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight">Welcome back</h1>
           <p className="text-muted-foreground">
-            Enter your email to sign in to your account
+            Sign in to your account to continue
           </p>
         </div>
 
@@ -98,6 +129,7 @@ export default function SignIn() {
                 onChange={(e) => setEmail(e.target.value)}
                 error={errors.email}
                 disabled={isLoading}
+                autoFocus
               />
               <AuthInput
                 type="password"
@@ -114,6 +146,8 @@ export default function SignIn() {
                 <input
                   type="checkbox"
                   id="remember"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="rounded border-gray-300 text-primary focus:ring-primary"
                   disabled={isLoading}
                 />
@@ -135,13 +169,52 @@ export default function SignIn() {
               </div>
             )}
 
-            <button 
+            <Button 
               type="submit" 
-              className="w-full py-2 px-4 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? "Signing in..." : "Sign in"}
-            </button>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign in"
+              )}
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleSocialSignIn('google')}
+                disabled={isLoading}
+              >
+                <Google className="mr-2 h-4 w-4" />
+                Google
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleSocialSignIn('github')}
+                disabled={isLoading}
+              >
+                <Github className="mr-2 h-4 w-4" />
+                GitHub
+              </Button>
+            </div>
           </form>
         </AuthCard>
 
