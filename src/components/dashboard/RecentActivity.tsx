@@ -19,10 +19,9 @@ interface RecentActivityProps {
 export function RecentActivity({ extended = false }: RecentActivityProps) {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const mounted = useRef(true);
+  const subscriptionId = `recentActivity-${extended ? 'extended' : 'normal'}`;
 
   useEffect(() => {
-    mounted.current = true;
     const user = auth.currentUser;
     
     if (!user) {
@@ -31,36 +30,34 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
       return;
     }
 
-    try {
-      const unsubscribe = subscribeToActivityLogs(
-        (newActivities) => {
-          if (!mounted.current) return;
-          
-          const validActivities = newActivities.filter(activity => 
-            activity && activity.timestamp && 
-            typeof activity.timestamp.toDate === 'function'
-          );
-          
-          setActivities(validActivities);
-          setIsLoading(false);
-        },
-        extended ? 10 : 5
-      );
+    // Only set up subscription if it's not already active
+    if (!subscriptionManager.isSubscriptionActive(subscriptionId)) {
+      try {
+        const unsubscribe = subscribeToActivityLogs(
+          (newActivities) => {
+            const validActivities = newActivities.filter(activity => 
+              activity && activity.timestamp && 
+              typeof activity.timestamp.toDate === 'function'
+            );
+            
+            setActivities(validActivities);
+            setIsLoading(false);
+          },
+          extended ? 10 : 5
+        );
 
-      subscriptionManager.addSubscription('recentActivity', unsubscribe);
-      
-      return () => {
-        mounted.current = false;
-        subscriptionManager.cleanupSubscription('recentActivity');
-      };
-    } catch (error) {
-      console.error('Error setting up activity logs subscription:', error);
-      if (mounted.current) {
+        subscriptionManager.addSubscription(subscriptionId, unsubscribe);
+      } catch (error) {
+        console.error('Error setting up activity logs subscription:', error);
         toast.error('Error connecting to activity service');
         setIsLoading(false);
       }
     }
-  }, [extended]);
+    
+    return () => {
+      subscriptionManager.cleanupSubscription(subscriptionId);
+    };
+  }, [extended, subscriptionId]);
 
   const formatTimestamp = (timestamp: Timestamp | null) => {
     if (!timestamp || typeof timestamp.toDate !== 'function') {

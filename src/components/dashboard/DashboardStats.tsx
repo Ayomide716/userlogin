@@ -1,8 +1,8 @@
 import { DollarSign, Users, Activity, TrendingUp } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
-import { AnalyticsStat, subscribeToAnalytics } from "@/lib/analytics";
+import { subscribeToAnalytics } from "@/lib/analytics";
 import { AddStatsDialog } from "./AddStatsDialog";
 import { StatCard } from "./stats/StatCard";
 import { subscriptionManager } from "@/lib/analytics/subscriptionManager";
@@ -39,10 +39,9 @@ export function DashboardStats() {
     },
   ]);
   const [isLoading, setIsLoading] = useState(true);
-  const mounted = useRef(true);
+  const subscriptionId = 'dashboardStats';
 
   useEffect(() => {
-    mounted.current = true;
     const user = auth.currentUser;
     
     if (!user) {
@@ -50,59 +49,56 @@ export function DashboardStats() {
       return;
     }
 
-    try {
-      const unsubscribe = subscribeToAnalytics((analyticsData) => {
-        if (!mounted.current) return;
-        
-        setStats([
-          {
-            title: "Total Revenue",
-            value: `$${analyticsData.revenue.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}`,
-            description: `${((analyticsData.revenue / 1000) * 100).toFixed(1)}% from last month`,
-            icon: DollarSign,
-            trend: (analyticsData.revenue / 1000) * 100,
-          },
-          {
-            title: "Active Users",
-            value: analyticsData.activeUsers.toString(),
-            description: `${((analyticsData.activeUsers / 100) * 100).toFixed(1)}% from last month`,
-            icon: Users,
-            trend: (analyticsData.activeUsers / 100) * 100,
-          },
-          {
-            title: "Active Sessions",
-            value: analyticsData.activeSessions.toString(),
-            description: `${((analyticsData.activeSessions / 100) * 100).toFixed(1)}% from last month`,
-            icon: Activity,
-            trend: (analyticsData.activeSessions / 100) * 100,
-          },
-          {
-            title: "Conversion Rate",
-            value: `${analyticsData.conversionRate.toFixed(1)}%`,
-            description: `${analyticsData.conversionRate.toFixed(1)}% since last hour`,
-            icon: TrendingUp,
-            trend: analyticsData.conversionRate,
-          },
-        ]);
-        setIsLoading(false);
-      });
+    if (!subscriptionManager.isSubscriptionActive(subscriptionId)) {
+      try {
+        const unsubscribe = subscribeToAnalytics((analyticsData) => {
+          setStats([
+            {
+              title: "Total Revenue",
+              value: `$${analyticsData.revenue.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}`,
+              description: `${((analyticsData.revenue / 1000) * 100).toFixed(1)}% from last month`,
+              icon: DollarSign,
+              trend: (analyticsData.revenue / 1000) * 100,
+            },
+            {
+              title: "Active Users",
+              value: analyticsData.activeUsers.toString(),
+              description: `${((analyticsData.activeUsers / 100) * 100).toFixed(1)}% from last month`,
+              icon: Users,
+              trend: (analyticsData.activeUsers / 100) * 100,
+            },
+            {
+              title: "Active Sessions",
+              value: analyticsData.activeSessions.toString(),
+              description: `${((analyticsData.activeSessions / 100) * 100).toFixed(1)}% from last month`,
+              icon: Activity,
+              trend: (analyticsData.activeSessions / 100) * 100,
+            },
+            {
+              title: "Conversion Rate",
+              value: `${analyticsData.conversionRate.toFixed(1)}%`,
+              description: `${analyticsData.conversionRate.toFixed(1)}% since last hour`,
+              icon: TrendingUp,
+              trend: analyticsData.conversionRate,
+            },
+          ]);
+          setIsLoading(false);
+        });
 
-      subscriptionManager.addSubscription('dashboardStats', unsubscribe);
-      
-      return () => {
-        mounted.current = false;
-        subscriptionManager.cleanupSubscription('dashboardStats');
-      };
-    } catch (error) {
-      console.error('Error setting up analytics subscription:', error);
-      if (mounted.current) {
+        subscriptionManager.addSubscription(subscriptionId, unsubscribe);
+      } catch (error) {
+        console.error('Error setting up analytics subscription:', error);
         toast.error('Error connecting to analytics service');
         setIsLoading(false);
       }
     }
+    
+    return () => {
+      subscriptionManager.cleanupSubscription(subscriptionId);
+    };
   }, []);
 
   const handleStatClick = (stat: typeof stats[0]) => {
