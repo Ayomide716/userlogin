@@ -31,7 +31,7 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
 
     const setupSubscription = async () => {
       try {
-        // Clean up any existing subscription
+        // Clean up existing subscription if any
         if (subscriptionRef.current) {
           subscriptionRef.current();
           subscriptionRef.current = null;
@@ -42,21 +42,13 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
           (newActivities) => {
             if (!mountedRef.current) return;
 
-            try {
-              const validActivities = newActivities.filter(activity => 
-                activity && activity.timestamp && 
-                typeof activity.timestamp.toDate === 'function'
-              );
-              
-              setActivities(validActivities);
-            } catch (error) {
-              console.error('Error processing activities:', error);
-              if (mountedRef.current) {
-                toast.error('Error loading recent activities');
-              }
-            } finally {
-              setIsLoading(false);
-            }
+            const validActivities = newActivities.filter(activity => 
+              activity && activity.timestamp && 
+              typeof activity.timestamp.toDate === 'function'
+            );
+            
+            setActivities(validActivities);
+            setIsLoading(false);
           },
           extended ? 10 : 5
         );

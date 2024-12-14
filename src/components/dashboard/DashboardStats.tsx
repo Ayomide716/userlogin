@@ -50,7 +50,7 @@ export function DashboardStats() {
 
     const setupSubscription = async () => {
       try {
-        // Clean up any existing subscription
+        // Clean up existing subscription if any
         if (subscriptionRef.current) {
           subscriptionRef.current();
           subscriptionRef.current = null;
@@ -60,48 +60,40 @@ export function DashboardStats() {
         const unsubscribe = subscribeToAnalytics((analyticsData) => {
           if (!mountedRef.current) return;
 
-          try {
-            setStats([
-              {
-                title: "Total Revenue",
-                value: `$${analyticsData.revenue.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}`,
-                description: `${((analyticsData.revenue / 1000) * 100).toFixed(1)}% from last month`,
-                icon: DollarSign,
-                trend: (analyticsData.revenue / 1000) * 100,
-              },
-              {
-                title: "Active Users",
-                value: analyticsData.activeUsers.toString(),
-                description: `${((analyticsData.activeUsers / 100) * 100).toFixed(1)}% from last month`,
-                icon: Users,
-                trend: (analyticsData.activeUsers / 100) * 100,
-              },
-              {
-                title: "Active Sessions",
-                value: analyticsData.activeSessions.toString(),
-                description: `${((analyticsData.activeSessions / 100) * 100).toFixed(1)}% from last month`,
-                icon: Activity,
-                trend: (analyticsData.activeSessions / 100) * 100,
-              },
-              {
-                title: "Conversion Rate",
-                value: `${analyticsData.conversionRate.toFixed(1)}%`,
-                description: `${analyticsData.conversionRate.toFixed(1)}% since last hour`,
-                icon: TrendingUp,
-                trend: analyticsData.conversionRate,
-              },
-            ]);
-          } catch (error) {
-            console.error('Error updating stats:', error);
-            if (mountedRef.current) {
-              toast.error('Error updating dashboard stats');
-            }
-          } finally {
-            setIsLoading(false);
-          }
+          setStats([
+            {
+              title: "Total Revenue",
+              value: `$${analyticsData.revenue.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}`,
+              description: `${((analyticsData.revenue / 1000) * 100).toFixed(1)}% from last month`,
+              icon: DollarSign,
+              trend: (analyticsData.revenue / 1000) * 100,
+            },
+            {
+              title: "Active Users",
+              value: analyticsData.activeUsers.toString(),
+              description: `${((analyticsData.activeUsers / 100) * 100).toFixed(1)}% from last month`,
+              icon: Users,
+              trend: (analyticsData.activeUsers / 100) * 100,
+            },
+            {
+              title: "Active Sessions",
+              value: analyticsData.activeSessions.toString(),
+              description: `${((analyticsData.activeSessions / 100) * 100).toFixed(1)}% from last month`,
+              icon: Activity,
+              trend: (analyticsData.activeSessions / 100) * 100,
+            },
+            {
+              title: "Conversion Rate",
+              value: `${analyticsData.conversionRate.toFixed(1)}%`,
+              description: `${analyticsData.conversionRate.toFixed(1)}% since last hour`,
+              icon: TrendingUp,
+              trend: analyticsData.conversionRate,
+            },
+          ]);
+          setIsLoading(false);
         });
 
         subscriptionRef.current = unsubscribe;
@@ -116,13 +108,6 @@ export function DashboardStats() {
 
     setupSubscription();
 
-    // Log activity only once when component mounts
-    logActivity(
-      "Dashboard Viewed",
-      "User accessed the dashboard",
-      "activity"
-    ).catch(console.error);
-
     return () => {
       mountedRef.current = false;
       if (subscriptionRef.current) {
@@ -135,11 +120,6 @@ export function DashboardStats() {
   const handleStatClick = (stat: typeof stats[0]) => {
     const trendText = stat.trend > 0 ? `Increased by ${stat.trend}%` : 'No change';
     toast.info(`${stat.title}: ${stat.value} (${trendText})`);
-    logActivity(
-      `Viewed ${stat.title}`,
-      `User checked ${stat.title.toLowerCase()} statistics`,
-      "activity"
-    ).catch(console.error);
   };
 
   if (isLoading) {
