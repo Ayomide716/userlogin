@@ -62,10 +62,18 @@ export default function SignIn() {
 
   const handleSocialSignIn = async (provider: 'google' | 'github') => {
     setIsLoading(true);
+    setErrors({});
+    
     try {
       const authProvider = provider === 'google' 
         ? new GoogleAuthProvider() 
         : new GithubAuthProvider();
+      
+      // Add scopes for better user data access
+      if (provider === 'google') {
+        authProvider.addScope('profile');
+        authProvider.addScope('email');
+      }
       
       const result = await signInWithPopup(auth, authProvider);
       console.log(`${provider} sign in successful:`, result.user);
@@ -81,6 +89,12 @@ export default function SignIn() {
 
   const handleAuthError = (error: any) => {
     switch (error.code) {
+      case "auth/unauthorized-domain":
+        toast.error("Authentication domain not authorized");
+        setErrors({
+          auth: "This domain is not authorized for authentication. Please contact support."
+        });
+        break;
       case "auth/invalid-login-credentials":
         toast.error("Invalid email or password");
         setErrors({
