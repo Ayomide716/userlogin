@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthCard } from "@/components/auth/AuthCard";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, GithubAuthProvider } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { SocialSignIn } from "@/components/auth/SocialSignIn";
+import { Provider } from "@supabase/supabase-js";
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -43,13 +43,19 @@ export default function SignIn() {
     setIsLoading(true);
 
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", email);
       } else {
         localStorage.removeItem("rememberedEmail");
       }
-      console.log("Sign in successful:", result.user);
+
       toast.success("Successfully signed in!");
       navigate("/dashboard");
     } catch (error: any) {
@@ -60,68 +66,48 @@ export default function SignIn() {
     }
   };
 
-  const handleSocialSignIn = async (provider: 'google' | 'github') => {
+  const handleSocialSignIn = async (provider: Provider) => {
     setIsLoading(true);
     setErrors({});
     
     try {
-      const authProvider = provider === 'google' 
-        ? new GoogleAuthProvider() 
-        : new GithubAuthProvider();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
       
-      // Add scopes for better user data access
-      if (provider === 'google') {
-        authProvider.addScope('profile');
-        authProvider.addScope('email');
-      }
+      if (error) throw error;
       
-      const result = await signInWithPopup(auth, authProvider);
-      console.log(`${provider} sign in successful:`, result.user);
-      toast.success("Successfully signed in!");
-      navigate("/dashboard");
+      // No need for success toast here as the page will redirect
     } catch (error: any) {
       console.error(`${provider} sign in error:`, error);
       handleAuthError(error);
-    } finally {
       setIsLoading(false);
     }
   };
 
   const handleAuthError = (error: any) => {
-    switch (error.code) {
-      case "auth/unauthorized-domain":
-        toast.error("Authentication domain not authorized");
-        setErrors({
-          auth: "This domain is not authorized for authentication. Please contact support."
-        });
-        break;
-      case "auth/invalid-login-credentials":
+    switch (error.message) {
+      case "Invalid login credentials":
         toast.error("Invalid email or password");
         setErrors({
           auth: "The email or password you entered is incorrect. Please try again."
         });
         break;
-      case "auth/invalid-email":
+      case "Invalid email format":
         toast.error("Invalid email format");
         setErrors({ email: "Please enter a valid email address" });
         break;
-      case "auth/network-request-failed":
+      case "Network error":
         toast.error("Network error. Please check your connection");
         setErrors({
           auth: "Unable to connect. Please check your internet connection and try again."
         });
         break;
-      case "auth/popup-closed-by-user":
+      case "User cancelled":
         toast.error("Sign in cancelled");
-        break;
-      case "auth/cancelled-popup-request":
-        // Ignore this error as it's handled by the popup-closed-by-user error
-        break;
-      case "auth/too-many-requests":
-        toast.error("Too many failed attempts. Please try again later");
-        setErrors({
-          auth: "Access temporarily disabled due to many failed attempts. Please try again later."
-        });
         break;
       default:
         toast.error("An error occurred during sign in");
