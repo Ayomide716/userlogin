@@ -63,7 +63,10 @@ export default function SignIn() {
   const handleSocialSignIn = async (provider: 'google' | 'github') => {
     setIsLoading(true);
     try {
-      const authProvider = provider === 'google' ? new GoogleAuthProvider() : new GithubAuthProvider();
+      const authProvider = provider === 'google' 
+        ? new GoogleAuthProvider() 
+        : new GithubAuthProvider();
+      
       const result = await signInWithPopup(auth, authProvider);
       console.log(`${provider} sign in successful:`, result.user);
       toast.success("Successfully signed in!");
@@ -93,6 +96,12 @@ export default function SignIn() {
         setErrors({
           auth: "Unable to connect. Please check your internet connection and try again."
         });
+        break;
+      case "auth/popup-closed-by-user":
+        toast.error("Sign in cancelled");
+        break;
+      case "auth/cancelled-popup-request":
+        // Ignore this error as it's handled by the popup-closed-by-user error
         break;
       case "auth/too-many-requests":
         toast.error("Too many failed attempts. Please try again later");
