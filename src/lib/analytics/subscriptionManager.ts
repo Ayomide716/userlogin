@@ -2,39 +2,38 @@ import { Unsubscribe } from 'firebase/firestore';
 
 class SubscriptionManager {
   private subscriptions: Map<string, Unsubscribe> = new Map();
-  private activeSubscriptions: Set<string> = new Set();
 
   addSubscription(id: string, unsubscribe: Unsubscribe) {
-    // If there's already an active subscription with this ID, clean it up first
-    if (this.activeSubscriptions.has(id)) {
-      this.cleanupSubscription(id);
-    }
+    // Clean up existing subscription if it exists
+    this.cleanupSubscription(id);
     
+    // Add new subscription
     this.subscriptions.set(id, unsubscribe);
-    this.activeSubscriptions.add(id);
   }
 
   cleanupSubscription(id: string) {
-    const existing = this.subscriptions.get(id);
-    if (existing) {
+    const unsubscribe = this.subscriptions.get(id);
+    if (unsubscribe) {
       try {
-        existing();
-        this.subscriptions.delete(id);
-        this.activeSubscriptions.delete(id);
+        unsubscribe();
       } catch (error) {
         console.error(`Error cleaning up subscription ${id}:`, error);
+      } finally {
+        this.subscriptions.delete(id);
       }
     }
   }
 
   cleanupAll() {
-    const subscriptionIds = Array.from(this.activeSubscriptions);
-    subscriptionIds.forEach(id => this.cleanupSubscription(id));
+    for (const [id] of this.subscriptions) {
+      this.cleanupSubscription(id);
+    }
   }
 
   isSubscriptionActive(id: string): boolean {
-    return this.activeSubscriptions.has(id);
+    return this.subscriptions.has(id);
   }
 }
 
+// Create a singleton instance
 export const subscriptionManager = new SubscriptionManager();

@@ -30,27 +30,25 @@ export function RecentActivity({ extended = false }: RecentActivityProps) {
       return;
     }
 
-    if (!subscriptionManager.isSubscriptionActive(subscriptionId)) {
-      try {
-        const unsubscribe = subscribeToActivityLogs(
-          (newActivities) => {
-            const validActivities = newActivities.filter(activity => 
-              activity && activity.timestamp && 
-              typeof activity.timestamp.toDate === 'function'
-            );
-            
-            setActivities(validActivities);
-            setIsLoading(false);
-          },
-          extended ? 10 : 5
-        );
+    try {
+      const unsubscribe = subscribeToActivityLogs(
+        (newActivities) => {
+          const validActivities = newActivities.filter(activity => 
+            activity && activity.timestamp && 
+            typeof activity.timestamp.toDate === 'function'
+          );
+          
+          setActivities(validActivities);
+          setIsLoading(false);
+        },
+        extended ? 10 : 5
+      );
 
-        subscriptionManager.addSubscription(subscriptionId, unsubscribe);
-      } catch (error) {
-        console.error('Error setting up activity logs subscription:', error);
-        toast.error('Error connecting to activity service');
-        setIsLoading(false);
-      }
+      subscriptionManager.addSubscription(subscriptionId, unsubscribe);
+    } catch (error) {
+      console.error('Error setting up activity logs subscription:', error);
+      toast.error('Error connecting to activity service');
+      setIsLoading(false);
     }
     
     return () => {
