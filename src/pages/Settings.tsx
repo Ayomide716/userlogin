@@ -5,13 +5,16 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { auth, db } from "@/lib/firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { auth } from "@/lib/firebase";
+import { getFirestore, doc, setDoc } from "firebase/firestore";
+
+const db = getFirestore();
 
 export default function Settings() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [privacy, setPrivacy] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -34,34 +37,34 @@ export default function Settings() {
     localStorage.setItem("theme", newMode ? "dark" : "light");
   };
 
+  const updateUserSettings = async (settings: { [key: string]: boolean }) => {
+    const user = auth.currentUser;
+    if (!user || isUpdating) return;
+
+    setIsUpdating(true);
+    try {
+      const userDocRef = doc(db, "users", user.uid);
+      await setDoc(userDocRef, settings, { merge: true });
+      
+      const settingName = Object.keys(settings)[0];
+      const isEnabled = settings[settingName];
+      toast.success(`${settingName} ${isEnabled ? 'enabled' : 'disabled'}`);
+    } catch (error) {
+      console.error("Failed to update settings:", error);
+      toast.error("Failed to update settings");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const handleNotificationsChange = async (checked: boolean) => {
     setNotifications(checked);
-    const user = auth.currentUser;
-    if (user) {
-      try {
-        await updateDoc(doc(db, "users", user.uid), {
-          notifications: checked
-        });
-        toast.success(`Notifications ${checked ? 'enabled' : 'disabled'}`);
-      } catch (error) {
-        toast.error("Failed to update notification settings");
-      }
-    }
+    await updateUserSettings({ notifications: checked });
   };
 
   const handlePrivacyChange = async (checked: boolean) => {
     setPrivacy(checked);
-    const user = auth.currentUser;
-    if (user) {
-      try {
-        await updateDoc(doc(db, "users", user.uid), {
-          privateProfile: checked
-        });
-        toast.success(`Private profile ${checked ? 'enabled' : 'disabled'}`);
-      } catch (error) {
-        toast.error("Failed to update privacy settings");
-      }
-    }
+    await updateUserSettings({ privateProfile: checked });
   };
 
   return (
@@ -127,6 +130,7 @@ export default function Settings() {
                 <Switch
                   checked={notifications}
                   onCheckedChange={handleNotificationsChange}
+                  disabled={isUpdating}
                 />
               </div>
             </CardContent>
@@ -150,6 +154,7 @@ export default function Settings() {
                 <Switch
                   checked={privacy}
                   onCheckedChange={handlePrivacyChange}
+                  disabled={isUpdating}
                 />
               </div>
             </CardContent>
