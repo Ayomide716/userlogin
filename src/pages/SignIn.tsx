@@ -43,22 +43,34 @@ export default function SignIn() {
     setIsLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      if (rememberMe) {
-        localStorage.setItem("rememberedEmail", email);
-      } else {
-        localStorage.removeItem("rememberedEmail");
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      if (userCredential.user) {
+        if (rememberMe) {
+          localStorage.setItem("rememberedEmail", email);
+        } else {
+          localStorage.removeItem("rememberedEmail");
+        }
+        toast.success("Successfully signed in!");
+        navigate("/dashboard");
       }
-      toast.success("Successfully signed in!");
-      navigate("/dashboard");
     } catch (error: any) {
       console.error("Sign in error:", error);
       
-      if (error.code === "auth/invalid-login-credentials") {
+      if (error.code === "auth/invalid-login-credentials" || error.code === "auth/invalid-credential") {
         setErrors({
-          auth: "Invalid email or password. Please try again."
+          auth: "The email or password you entered is incorrect. Please try again."
         });
         toast.error("Invalid email or password");
+      } else if (error.code === "auth/user-not-found") {
+        setErrors({
+          auth: "No account found with this email. Please sign up first."
+        });
+        toast.error("Account not found");
+      } else if (error.code === "auth/wrong-password") {
+        setErrors({
+          auth: "Incorrect password. Please try again."
+        });
+        toast.error("Incorrect password");
       } else if (error.code === "auth/network-request-failed") {
         setErrors({
           auth: "Network error. Please check your connection and try again."
@@ -84,9 +96,11 @@ export default function SignIn() {
         ? new GoogleAuthProvider() 
         : new GithubAuthProvider();
       
-      await signInWithPopup(auth, authProvider);
-      toast.success("Successfully signed in!");
-      navigate("/dashboard");
+      const result = await signInWithPopup(auth, authProvider);
+      if (result.user) {
+        toast.success("Successfully signed in!");
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       console.error(`${provider} sign in error:`, error);
       
