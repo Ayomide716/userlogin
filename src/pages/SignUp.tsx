@@ -37,57 +37,51 @@ export default function SignUp() {
       }
 
       // Check if email exists first
-      try {
-        const signInMethods = await fetchSignInMethodsForEmail(auth, formData.email);
-        if (signInMethods.length > 0) {
-          toast.error("This email is already registered");
-          setErrors(prev => ({ 
-            ...prev, 
-            email: "This email is already registered",
-            auth: "Please sign in instead or use a different email address"
-          }));
-          return;
-        }
-      } catch (emailCheckError: any) {
-        if (emailCheckError.code === "auth/invalid-email") {
-          toast.error("Invalid email address");
-          setErrors(prev => ({ ...prev, email: "Please enter a valid email address" }));
-          return;
-        }
+      const signInMethods = await fetchSignInMethodsForEmail(auth, formData.email);
+      if (signInMethods.length > 0) {
+        setErrors(prev => ({ 
+          ...prev, 
+          email: "This email is already registered",
+          auth: "Please sign in instead or use a different email address"
+        }));
+        toast.error("This email is already registered");
+        setIsLoading(false);
+        return;
       }
 
       // Proceed with account creation
-      await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      toast.success("Account created successfully!");
-      navigate("/dashboard");
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      if (userCredential.user) {
+        toast.success("Account created successfully!");
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       console.error("Sign up error:", error);
       
-      // Handle specific Firebase auth errors
       switch (error.code) {
         case "auth/email-already-in-use":
-          toast.error("Email already in use");
           setErrors(prev => ({ 
             ...prev, 
             email: "This email is already registered",
             auth: "Please sign in instead or use a different email address"
           }));
+          toast.error("Email already in use");
           break;
         case "auth/weak-password":
-          toast.error("Password should be at least 6 characters");
           setErrors(prev => ({ ...prev, password: "Password must be at least 6 characters" }));
+          toast.error("Password should be at least 6 characters");
           break;
         case "auth/invalid-email":
-          toast.error("Invalid email address");
           setErrors(prev => ({ ...prev, email: "Please enter a valid email address" }));
+          toast.error("Invalid email address");
           break;
         case "auth/network-request-failed":
-          toast.error("Network error. Please check your connection");
           setErrors(prev => ({ ...prev, auth: "Network error. Please check your connection and try again" }));
+          toast.error("Network error. Please check your connection");
           break;
         default:
-          toast.error("Failed to create account");
           setErrors(prev => ({ ...prev, auth: "An unexpected error occurred. Please try again" }));
+          toast.error("Failed to create account");
       }
     } finally {
       setIsLoading(false);
@@ -97,6 +91,14 @@ export default function SignUp() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear errors when user starts typing
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   return (
