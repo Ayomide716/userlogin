@@ -5,10 +5,8 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { auth } from "@/lib/firebase";
-import { getFirestore, doc, setDoc } from "firebase/firestore";
-
-const db = getFirestore();
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 export default function Settings() {
   const [isDarkMode, setIsDarkMode] = useState(false);

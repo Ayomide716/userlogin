@@ -43,18 +43,33 @@ export default function SignIn() {
     setIsLoading(true);
 
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, email, password);
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", email);
       } else {
         localStorage.removeItem("rememberedEmail");
       }
-      console.log("Sign in successful:", result.user);
       toast.success("Successfully signed in!");
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Sign in error:", error);
-      handleAuthError(error);
+      
+      if (error.code === "auth/invalid-login-credentials") {
+        setErrors({
+          auth: "Invalid email or password. Please try again."
+        });
+        toast.error("Invalid email or password");
+      } else if (error.code === "auth/network-request-failed") {
+        setErrors({
+          auth: "Network error. Please check your connection and try again."
+        });
+        toast.error("Network error. Please check your connection");
+      } else {
+        setErrors({
+          auth: "An error occurred during sign in. Please try again."
+        });
+        toast.error("Failed to sign in");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -69,65 +84,27 @@ export default function SignIn() {
         ? new GoogleAuthProvider() 
         : new GithubAuthProvider();
       
-      // Add scopes for better user data access
-      if (provider === 'google') {
-        authProvider.addScope('profile');
-        authProvider.addScope('email');
-      }
-      
-      const result = await signInWithPopup(auth, authProvider);
-      console.log(`${provider} sign in successful:`, result.user);
+      await signInWithPopup(auth, authProvider);
       toast.success("Successfully signed in!");
       navigate("/dashboard");
     } catch (error: any) {
       console.error(`${provider} sign in error:`, error);
-      handleAuthError(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAuthError = (error: any) => {
-    switch (error.code) {
-      case "auth/unauthorized-domain":
-        toast.error("Authentication domain not authorized");
+      
+      if (error.code === "auth/popup-closed-by-user") {
+        toast.error("Sign in cancelled");
+      } else if (error.code === "auth/unauthorized-domain") {
         setErrors({
           auth: "This domain is not authorized for authentication. Please contact support."
         });
-        break;
-      case "auth/invalid-login-credentials":
-        toast.error("Invalid email or password");
+        toast.error("Authentication domain not authorized");
+      } else {
         setErrors({
-          auth: "The email or password you entered is incorrect. Please try again."
+          auth: "An error occurred during sign in. Please try again."
         });
-        break;
-      case "auth/invalid-email":
-        toast.error("Invalid email format");
-        setErrors({ email: "Please enter a valid email address" });
-        break;
-      case "auth/network-request-failed":
-        toast.error("Network error. Please check your connection");
-        setErrors({
-          auth: "Unable to connect. Please check your internet connection and try again."
-        });
-        break;
-      case "auth/popup-closed-by-user":
-        toast.error("Sign in cancelled");
-        break;
-      case "auth/cancelled-popup-request":
-        // Ignore this error as it's handled by the popup-closed-by-user error
-        break;
-      case "auth/too-many-requests":
-        toast.error("Too many failed attempts. Please try again later");
-        setErrors({
-          auth: "Access temporarily disabled due to many failed attempts. Please try again later."
-        });
-        break;
-      default:
-        toast.error("An error occurred during sign in");
-        setErrors({
-          auth: "An unexpected error occurred. Please try again."
-        });
+        toast.error("Failed to sign in");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
